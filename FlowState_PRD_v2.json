@@ -1,0 +1,620 @@
+{
+  "meta": {
+    "project": "FlowState",
+    "version": "2.0.0",
+    "description": "90-day human performance coaching platform. Affine (forked, stripped) provides the Notion-like UI shell. Discord is the primary client check-in interface. NeonDB is the data layer. Backend API is the automation brain.",
+    "last_updated": "2026-03-10",
+    "architecture_summary": "Affine fork (UI only, no Affine backend) + NeonDB Postgres + BetterAuth + Hono API + Discord.js bot + Railway (API + bot) + Vercel (Affine frontend)",
+    "build_order": ["phase_0", "phase_1", "phase_2", "phase_3", "phase_4", "phase_5", "phase_6"]
+  },
+
+  "stack": {
+    "ui_shell": {
+      "framework": "Affine (forked from github.com/toeverything/AFFiNE)",
+      "language": "TypeScript + React",
+      "purpose": "Provides Notion-like UI — document editor, grid/database views, page sidebar navigation, page hierarchy",
+      "what_to_strip": [
+        "AI writing assistant (@affine/ai package)",
+        "Affine Cloud sync (packages/backend/server)",
+        "Real-time multiplayer/collaboration (awareness, CRDT sync beyond local)",
+        "Template marketplace",
+        "Affine account system (replace with BetterAuth)",
+        "Mobile app (apps/mobile)",
+        "Desktop Electron app (apps/electron) — web only for v1",
+        "Payment/subscription modules",
+        "Public sharing / publish page feature"
+      ],
+      "what_to_keep": [
+        "Document editor (BlockSuite editor)",
+        "Database / grid view",
+        "Page sidebar and hierarchy",
+        "Settings panel shell",
+        "Page creation and linking",
+        "Icon and emoji picker",
+        "Dark/light mode"
+      ],
+      "integration_requirement": "Affine runs as UI shell only. All data reads/writes go through our backend API, not Affine's own backend. Affine's local state syncs to our NeonDB via API calls."
+    },
+    "backend": {
+      "runtime": "Node.js + TypeScript",
+      "framework": "Hono",
+      "purpose": "All business logic, automation jobs, AI calls, Discord bot communication, data access"
+    },
+    "database": "NeonDB (PostgreSQL, serverless)",
+    "auth": "BetterAuth — replaces Affine's native account system",
+    "bot": "Discord.js v14",
+    "ai": {
+      "photo_analysis": "Google Gemini Flash 2.0 (vision — cheap, fast)",
+      "daily_feedback": "Groq llama-3.3-70b (text generation — near-free)",
+      "weekly_summaries": "Anthropic Claude Sonnet 4 (higher quality, used once per week per client only)",
+      "note": "All AI calls made from backend only — never from frontend or bot directly"
+    },
+    "jobs": "node-cron (inside backend Railway service — no external orchestration)",
+    "file_storage": "Cloudflare R2 (check-in photo storage)",
+    "deployment": {
+      "frontend_affine": "Vercel",
+      "backend_api": "Railway (persistent service)",
+      "discord_bot": "Railway (separate persistent service)",
+      "database": "NeonDB (managed, serverless)"
+    }
+  },
+
+  "roles": {
+    "coach": {
+      "description": "Admin. Full access to all clients, intervention queue, master dashboard, templates, reports, onboarding.",
+      "permissions": [
+        "read:all_clients",
+        "write:interventions",
+        "write:client_config",
+        "read:all_analytics",
+        "send:discord_messages_via_bot",
+        "manage:templates",
+        "create:clients",
+        "write:weekly_summary_notes"
+      ]
+    },
+    "client": {
+      "description": "End user. Sees only their own workspace in Affine. Cannot access other clients or coach admin views.",
+      "permissions": [
+        "read:own_profile",
+        "read:own_checkins",
+        "read:own_calendar",
+        "read:own_progress",
+        "read:own_interventions"
+      ]
+    }
+  },
+
+  "database_schema": {
+    "tables": {
+      "users": {
+        "description": "BetterAuth-managed. One row per user.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "email": "text UNIQUE NOT NULL",
+          "name": "text NOT NULL",
+          "role": "text NOT NULL CHECK (role IN ('coach', 'client'))",
+          "created_at": "timestamptz DEFAULT now()",
+          "updated_at": "timestamptz DEFAULT now()"
+        }
+      },
+      "clients": {
+        "description": "Extended profile for client users. Single source of truth for all automation. Every cron job and bot action reads from this table first.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "user_id": "uuid REFERENCES users(id) ON DELETE CASCADE",
+          "coach_id": "uuid REFERENCES users(id) NOT NULL",
+          "full_name": "text NOT NULL",
+          "discord_user_id": "text UNIQUE",
+          "discord_channel_id": "text UNIQUE",
+          "affine_workspace_id": "text UNIQUE",
+          "program_start_date": "date NOT NULL",
+          "program_end_date": "date GENERATED ALWAYS AS (program_start_date + INTERVAL '90 days') STORED",
+          "program_week": "integer DEFAULT 1",
+          "program_day": "integer DEFAULT 1",
+          "status": "text DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'paused', 'completed'))",
+          "chronotype": "text CHECK (chronotype IN ('Morning', 'Intermediate', 'Evening'))",
+          "meq_score": "integer CHECK (meq_score BETWEEN 16 AND 86)",
+          "primary_goal": "text",
+          "signature_focus_areas": "jsonb DEFAULT '[]'",
+          "onboarding_responses": "jsonb DEFAULT '{}'",
+          "target_wake_time": "time DEFAULT '07:30'",
+          "target_bedtime": "time DEFAULT '23:30'",
+          "target_caffeine_cutoff": "time DEFAULT '14:00'",
+          "morning_light_duration_min": "integer DEFAULT 20",
+          "morning_exercise_time": "text DEFAULT '07:00-07:30'",
+          "target_peak_window": "text DEFAULT '09:00-12:00'",
+          "checkin_time_am": "time DEFAULT '06:30'",
+          "checkin_time_pm": "time DEFAULT '20:00'",
+          "rolling_7d_adherence": "numeric(5,2) DEFAULT 0",
+          "consecutive_missed_checkins": "integer DEFAULT 0",
+          "last_checkin_at": "timestamptz",
+          "intervention_flag": "boolean DEFAULT false",
+          "created_at": "timestamptz DEFAULT now()",
+          "updated_at": "timestamptz DEFAULT now()"
+        }
+      },
+      "program_phases": {
+        "description": "Master weekly protocol targets for all 12 weeks. Seeded once. Not per-client — clients advance through this shared schedule.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "week_number": "integer UNIQUE NOT NULL",
+          "phase_name": "text NOT NULL",
+          "phase_month": "integer NOT NULL CHECK (phase_month IN (1, 2, 3))",
+          "month_theme": "text NOT NULL",
+          "target_wake_time": "time NOT NULL",
+          "target_bedtime": "time NOT NULL",
+          "target_caffeine_cutoff": "time NOT NULL",
+          "morning_light_duration_min": "integer NOT NULL",
+          "morning_exercise_time": "text NOT NULL",
+          "target_peak_window": "text NOT NULL",
+          "checkin_prompt_am": "text NOT NULL",
+          "checkin_prompt_pm": "text NOT NULL",
+          "milestone_assessment": "boolean DEFAULT false",
+          "notes": "text"
+        },
+        "seed_data": [
+          { "week_number": 1, "phase_name": "Initial Assessment & Setup", "phase_month": 1, "month_theme": "Attention Architecture", "target_wake_time": "07:30", "target_bedtime": "00:00", "target_caffeine_cutoff": "14:00", "morning_light_duration_min": 20, "morning_exercise_time": "07:00-07:30", "target_peak_window": "09:00-12:00", "milestone_assessment": false },
+          { "week_number": 2, "phase_name": "Interventions & Dashboard", "phase_month": 1, "month_theme": "Attention Architecture", "target_wake_time": "07:15", "target_bedtime": "23:45", "target_caffeine_cutoff": "13:00", "morning_light_duration_min": 40, "morning_exercise_time": "06:45-07:15", "target_peak_window": "09:00-12:00", "milestone_assessment": true },
+          { "week_number": 3, "phase_name": "Optimization & Visualization", "phase_month": 1, "month_theme": "Attention Architecture", "target_wake_time": "07:00", "target_bedtime": "23:30", "target_caffeine_cutoff": "12:00", "morning_light_duration_min": 40, "morning_exercise_time": "06:30-07:00", "target_peak_window": "08:30-12:00", "milestone_assessment": false },
+          { "week_number": 4, "phase_name": "Triggers & Schedule Building", "phase_month": 1, "month_theme": "Attention Architecture", "target_wake_time": "07:00", "target_bedtime": "23:30", "target_caffeine_cutoff": "12:00", "morning_light_duration_min": 40, "morning_exercise_time": "06:30-07:00", "target_peak_window": "08:30-12:00", "milestone_assessment": true },
+          { "week_number": 5, "phase_name": "Flow Triggers", "phase_month": 2, "month_theme": "Flow State Engineering", "target_wake_time": "06:45", "target_bedtime": "23:30", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 40, "morning_exercise_time": "06:15-06:45", "target_peak_window": "08:00-12:00", "milestone_assessment": false },
+          { "week_number": 6, "phase_name": "Deep Work Architecture", "phase_month": 2, "month_theme": "Flow State Engineering", "target_wake_time": "06:45", "target_bedtime": "23:30", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 40, "morning_exercise_time": "06:15-06:45", "target_peak_window": "08:00-12:00", "milestone_assessment": true },
+          { "week_number": 7, "phase_name": "Recovery & Resilience", "phase_month": 2, "month_theme": "Flow State Engineering", "target_wake_time": "06:30", "target_bedtime": "23:00", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:30-12:00", "milestone_assessment": false },
+          { "week_number": 8, "phase_name": "Consolidation", "phase_month": 2, "month_theme": "Flow State Engineering", "target_wake_time": "06:30", "target_bedtime": "23:00", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:30-12:00", "milestone_assessment": true },
+          { "week_number": 9, "phase_name": "Identity Anchoring", "phase_month": 3, "month_theme": "Identity & Integration", "target_wake_time": "06:30", "target_bedtime": "23:00", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:30-11:30", "milestone_assessment": false },
+          { "week_number": 10, "phase_name": "System Review", "phase_month": 3, "month_theme": "Identity & Integration", "target_wake_time": "06:30", "target_bedtime": "23:00", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:30-11:30", "milestone_assessment": false },
+          { "week_number": 11, "phase_name": "Autonomy Handoff", "phase_month": 3, "month_theme": "Identity & Integration", "target_wake_time": "06:30", "target_bedtime": "22:45", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:00-11:00", "milestone_assessment": false },
+          { "week_number": 12, "phase_name": "Day 90 Final Review", "phase_month": 3, "month_theme": "Identity & Integration", "target_wake_time": "06:30", "target_bedtime": "22:45", "target_caffeine_cutoff": "11:00", "morning_light_duration_min": 45, "morning_exercise_time": "06:00-06:30", "target_peak_window": "07:00-11:00", "milestone_assessment": true }
+        ]
+      },
+      "check_ins": {
+        "description": "Every check-in submitted via Discord. One row per event. Written by backend after bot receives photo and AI analysis completes.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "client_id": "uuid REFERENCES clients(id) ON DELETE CASCADE",
+          "discord_message_id": "text UNIQUE",
+          "type": "text NOT NULL CHECK (type IN ('morning', 'evening', 'wearable'))",
+          "submitted_at": "timestamptz NOT NULL DEFAULT now()",
+          "photo_url": "text",
+          "client_note": "text",
+          "ai_analysis": "text",
+          "ai_model_used": "text",
+          "adherence_score": "numeric(5,2)",
+          "exercise_completed": "boolean",
+          "morning_light_completed": "boolean",
+          "caffeine_cutoff_met": "boolean",
+          "wake_time_actual": "time",
+          "sleep_hours": "numeric(4,2)",
+          "energy_rating": "integer CHECK (energy_rating BETWEEN 1 AND 10)",
+          "focus_rating": "integer CHECK (focus_rating BETWEEN 1 AND 10)",
+          "wearable_hrv": "numeric(6,2)",
+          "wearable_recovery_score": "integer",
+          "wearable_sleep_score": "integer",
+          "program_week": "integer NOT NULL",
+          "program_day": "integer NOT NULL",
+          "created_at": "timestamptz DEFAULT now()"
+        }
+      },
+      "calendar_events": {
+        "description": "Per-client calendar. Auto-populated by cron jobs. Drives the calendar view in the Affine portal.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "client_id": "uuid REFERENCES clients(id) ON DELETE CASCADE",
+          "title": "text NOT NULL",
+          "type": "text NOT NULL CHECK (type IN ('checkin_scheduled', 'checkin_completed', 'checkin_missed', 'phase_transition', 'milestone', 'intervention', 'coach_note'))",
+          "scheduled_at": "timestamptz NOT NULL",
+          "completed_at": "timestamptz",
+          "status": "text DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'missed', 'rescheduled', 'cancelled'))",
+          "rescheduled_to": "timestamptz",
+          "linked_checkin_id": "uuid REFERENCES check_ins(id)",
+          "linked_intervention_id": "uuid REFERENCES interventions(id)",
+          "notes": "text",
+          "created_at": "timestamptz DEFAULT now()"
+        }
+      },
+      "interventions": {
+        "description": "Intervention queue. System auto-creates entries when alert conditions trigger. Coach reviews, edits if needed, approves. Bot delivers to client Discord channel.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "client_id": "uuid REFERENCES clients(id) ON DELETE CASCADE",
+          "coach_id": "uuid REFERENCES users(id)",
+          "trigger_condition": "text NOT NULL CHECK (trigger_condition IN ('low_adherence', 'missed_checkins_2', 'missed_checkins_3plus', 'phase_transition', 'milestone_week', 'sleep_declining', 'high_adherence_streak', 'manual'))",
+          "trigger_data": "jsonb NOT NULL DEFAULT '{}'",
+          "template_id": "uuid REFERENCES intervention_templates(id)",
+          "draft_message": "text NOT NULL",
+          "final_message": "text",
+          "status": "text DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'modified', 'sent', 'dismissed'))",
+          "delivered_via": "text DEFAULT 'discord'",
+          "discord_message_id": "text",
+          "client_response": "text",
+          "outcome_notes": "text",
+          "created_at": "timestamptz DEFAULT now()",
+          "approved_at": "timestamptz",
+          "sent_at": "timestamptz"
+        }
+      },
+      "intervention_templates": {
+        "description": "25 reusable intervention message templates. System selects based on trigger condition, personalises with client data via Groq, coach reviews draft.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "code": "text UNIQUE NOT NULL",
+          "trigger_condition": "text NOT NULL",
+          "name": "text NOT NULL",
+          "message_template": "text NOT NULL",
+          "variables": "jsonb DEFAULT '[]'",
+          "active": "boolean DEFAULT true",
+          "use_count": "integer DEFAULT 0",
+          "created_at": "timestamptz DEFAULT now()"
+        },
+        "seed_data": [
+          { "code": "INT-01", "trigger_condition": "low_adherence", "name": "Morning Exercise Slipping", "message_template": "Hey {{name}}, I noticed morning exercise has been tough this week ({{adherence}}% adherence). Let's talk about what's getting in the way — is it energy, timing, or motivation?" },
+          { "code": "INT-02", "trigger_condition": "missed_checkins_2", "name": "2 Missed Check-Ins", "message_template": "Hey {{name}}, just checking in — missed your last two check-ins. Everything okay? Drop a quick reply when you get a chance." },
+          { "code": "INT-03", "trigger_condition": "missed_checkins_3plus", "name": "3+ Missed Check-Ins", "message_template": "{{name}}, it's been {{days}} days since your last check-in. I want to make sure you're supported — reply here or let me know if you need to pause." },
+          { "code": "INT-04", "trigger_condition": "low_adherence", "name": "Weekly Adherence Drop", "message_template": "Weekly check — you're at {{adherence}}% this week. The data shows {{weakness}} is the main gap. Here's a simplified protocol for the next 3 days..." },
+          { "code": "INT-05", "trigger_condition": "phase_transition", "name": "Phase Transition", "message_template": "You're entering Week {{week}} — here's what changes: wake time moves to {{wake_time}}, caffeine cutoff tightens to {{caffeine_cutoff}}. Your new morning routine card has been updated." },
+          { "code": "INT-06", "trigger_condition": "sleep_declining", "name": "Sleep Quality Declining", "message_template": "Your sleep scores have been {{avg_score}} the past few days. A couple of things to check: post-exercise temperature, screen time after 9pm, and your caffeine cutoff." },
+          { "code": "INT-07", "trigger_condition": "low_adherence", "name": "Peak Window Not Shifting", "message_template": "After {{weeks}} weeks, your peak is still around {{current_peak}} rather than {{target_peak}}. Let's review morning light adherence — that's usually the lever." },
+          { "code": "INT-08", "trigger_condition": "milestone_week", "name": "Week 2 Milestone", "message_template": "Week 2 check — time to submit your 7-day sleep diary and energy log. Head to your portal to complete the assessment." },
+          { "code": "INT-09", "trigger_condition": "milestone_week", "name": "Week 4 Full Review", "message_template": "Week 4 review — you've been on protocol for a month. Let's measure the shift. Please complete the MEQ re-test + energy log in your portal." },
+          { "code": "INT-10", "trigger_condition": "high_adherence_streak", "name": "7-Day Streak", "message_template": "Excellent — 7-day adherence at {{adherence}}%. Your data shows peak window moving earlier by {{minutes}} minutes. Keep this up through the weekend." }
+        ]
+      },
+      "weekly_summaries": {
+        "description": "Auto-generated coach summaries every Sunday night via Claude Sonnet. Coach reviews Monday morning.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "client_id": "uuid REFERENCES clients(id) ON DELETE CASCADE",
+          "week_number": "integer NOT NULL",
+          "generated_at": "timestamptz DEFAULT now()",
+          "total_checkins": "integer DEFAULT 0",
+          "missed_checkins": "integer DEFAULT 0",
+          "avg_adherence": "numeric(5,2)",
+          "avg_energy": "numeric(4,2)",
+          "avg_focus": "numeric(4,2)",
+          "avg_sleep_hours": "numeric(4,2)",
+          "interventions_sent": "integer DEFAULT 0",
+          "ai_narrative": "text",
+          "coach_notes": "text",
+          "UNIQUE": ["client_id", "week_number"]
+        }
+      },
+      "milestones": {
+        "description": "Assessment snapshots at weeks 2, 4, 6, 8, 12. Enables baseline vs current comparison.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "client_id": "uuid REFERENCES clients(id) ON DELETE CASCADE",
+          "week_number": "integer NOT NULL",
+          "meq_score": "integer",
+          "chronotype": "text",
+          "rcs_hours_per_week": "numeric(5,2)",
+          "deep_work_blocks_per_week": "integer",
+          "avg_energy_rating": "numeric(4,2)",
+          "avg_focus_rating": "numeric(4,2)",
+          "avg_sleep_hours": "numeric(4,2)",
+          "wearable_hrv_avg": "numeric(6,2)",
+          "notes": "text",
+          "completed_at": "timestamptz",
+          "UNIQUE": ["client_id", "week_number"]
+        }
+      },
+      "notifications": {
+        "description": "In-portal notification log. Powers the notification bell in the Affine UI.",
+        "columns": {
+          "id": "uuid PRIMARY KEY DEFAULT gen_random_uuid()",
+          "user_id": "uuid REFERENCES users(id) ON DELETE CASCADE",
+          "type": "text NOT NULL CHECK (type IN ('checkin_reminder', 'intervention', 'phase_transition', 'milestone', 'weekly_summary_ready', 'coach_alert', 'streak'))",
+          "title": "text NOT NULL",
+          "body": "text NOT NULL",
+          "read": "boolean DEFAULT false",
+          "linked_entity_type": "text",
+          "linked_entity_id": "uuid",
+          "created_at": "timestamptz DEFAULT now()"
+        }
+      }
+    }
+  },
+
+  "affine_fork": {
+    "repo": "https://github.com/toeverything/AFFiNE",
+    "strategy": "Fork → strip → expose internal data bridge API → deploy as UI shell only",
+    "strip_instructions": {
+      "remove_packages": [
+        "packages/frontend/component/src/components/affine-ai — entire AI assistant UI",
+        "packages/backend/server — entire Affine Cloud backend (replaced by our Hono API)",
+        "packages/frontend/core/src/modules/cloud — cloud sync module",
+        "packages/frontend/core/src/modules/share-doc — public sharing",
+        "packages/frontend/core/src/modules/payment — payment module",
+        "apps/mobile — mobile app",
+        "apps/electron — desktop app"
+      ],
+      "disable_features": [
+        "Real-time multiplayer awareness (keep local state only)",
+        "Template marketplace fetch",
+        "Affine account login (replace login screen with BetterAuth)"
+      ],
+      "keep": [
+        "BlockSuite editor (packages/frontend/block-suite-editor)",
+        "Database / grid view component",
+        "Page sidebar and tree navigation",
+        "Settings panel shell",
+        "Page linking and hierarchy",
+        "Theme system (dark/light)"
+      ],
+      "add": [
+        "BetterAuth session integration — replace Affine auth context with BetterAuth JWT",
+        "Data bridge layer — thin adapter that intercepts Affine page/database read-write calls and routes them to our backend API instead of Affine's backend",
+        "FlowState branding — replace Affine logo, colours, and typography",
+        "Role-based workspace routing — coach sees admin workspace, client sees their own workspace only"
+      ]
+    },
+    "workspace_structure": {
+      "client_workspace": {
+        "pages": [
+          { "slug": "home", "title": "Dashboard", "content": "KPI tiles, this week targets, last 3 check-ins, calendar widget — all data-driven from API" },
+          { "slug": "profile", "title": "My Profile & KPIs", "content": "Onboarding data, KPI table pulling from check_ins, program overview" },
+          { "slug": "calendar", "title": "My Calendar", "content": "Full calendar view of check-in events — colour coded, linked to check-in records" },
+          { "slug": "progress", "title": "Progress", "content": "Adherence trend, energy/focus charts, sleep trend, milestone comparisons" },
+          { "slug": "checkins", "title": "Check-In History", "content": "Full log of all Discord check-ins with AI feedback and photo" },
+          { "slug": "month-1", "title": "Month 1 — Attention Architecture", "content": "Program content, weekly checklists, coach notes" },
+          { "slug": "month-2", "title": "Month 2 — Flow State Engineering", "content": "Program content, weekly checklists, coach notes" },
+          { "slug": "month-3", "title": "Month 3 — Identity & Integration", "content": "Program content, weekly checklists, coach notes" },
+          { "slug": "tools", "title": "Tools & Resources", "content": "Links, software recommendations, AI tool access" }
+        ]
+      },
+      "coach_workspace": {
+        "pages": [
+          { "slug": "admin-dashboard", "title": "Master Dashboard", "content": "All clients grid, adherence sorting, flags — data from GET /api/dashboard/coach" },
+          { "slug": "intervention-queue", "title": "Intervention Queue", "content": "Pending interventions, approve/edit/dismiss actions" },
+          { "slug": "clients", "title": "All Clients", "content": "List view, click to drill into individual client workspace" },
+          { "slug": "templates", "title": "Template Library", "content": "All intervention templates, editable, usage stats" },
+          { "slug": "reports", "title": "Weekly Reports", "content": "Auto-generated summaries, coach annotation" },
+          { "slug": "onboard", "title": "Onboard New Client", "content": "Multi-step onboarding form" }
+        ]
+      }
+    }
+  },
+
+  "discord_bot": {
+    "description": "Discord.js v14 bot. Primary client interaction surface for check-ins. Reads client config from backend API. Posts results back to backend API. Delivers coach interventions.",
+    "server_structure": {
+      "category_name": "FLOWSTATE-CLIENTS",
+      "per_client_channels": [
+        {
+          "name_format": "checkin-{firstName}-{clientId_short}",
+          "type": "text",
+          "visibility": "private — only that client's Discord role + coach role can see it",
+          "purpose": "All daily check-in activity for this client"
+        }
+      ],
+      "permission_model": {
+        "client_role_name": "client-{clientId_short}",
+        "client_permissions": ["VIEW_CHANNEL", "SEND_MESSAGES", "ATTACH_FILES", "READ_MESSAGE_HISTORY"],
+        "coach_role_permissions": ["VIEW_CHANNEL", "SEND_MESSAGES", "MANAGE_MESSAGES", "READ_MESSAGE_HISTORY"],
+        "everyone": "DENY ALL"
+      }
+    },
+    "slash_commands": [
+      { "command": "/checkin", "description": "Manually trigger a check-in prompt for a specific client", "access": "coach" },
+      { "command": "/status [client]", "description": "Get client's current adherence % and last check-in timestamp", "access": "coach" },
+      { "command": "/pause [client] [days]", "description": "Pause check-in reminders for N days", "access": "coach" },
+      { "command": "/summary [client]", "description": "Get this week's summary for a client", "access": "coach" }
+    ],
+    "check_in_flow": {
+      "am_reminder_message": "🌅 Morning Check-In — Week {{program_week}}, Day {{program_day}}\n\nHey {{name}}! Today's targets:\n• Wake: {{target_wake_time}}\n• Morning light: {{morning_light_min}} min\n• Exercise: {{morning_exercise_time}}\n• Caffeine cutoff: {{target_caffeine_cutoff}}\n• Peak window: {{target_peak_window}}\n\nReply with your check-in photo 📸 and a quick note on last night's sleep.",
+      "pm_reminder_message": "🌙 Evening Check-In — Week {{program_week}}\n\nHey {{name}}! End of day:\n• Energy today (1–10)?\n• Focus blocks completed?\n• Anything blocking tomorrow's morning routine?\n\nOptional: attach wearable screenshot 📊",
+      "on_photo_received": [
+        "Step 1: Identify client — GET /api/bot/client-by-channel/:channelId",
+        "Step 2: Add ⏳ reaction to message",
+        "Step 3: Download photo, upload to Cloudflare R2, get URL",
+        "Step 4: Call Gemini Flash Vision API with photo + ai_analysis_prompt (see below)",
+        "Step 5: Parse AI response for scores and feedback text",
+        "Step 6: POST to /api/bot/checkin with all extracted data",
+        "Step 7: Backend writes to check_ins, recalculates rolling_7d_adherence, triggers alert pipeline",
+        "Step 8: Post AI feedback as reply in Discord channel",
+        "Step 9: Remove ⏳, add ✅ to original message"
+      ],
+      "missed_checkin_flow": [
+        "2 hours after scheduled time with no check-in: post gentle nudge in channel",
+        "End of day with no check-in: POST /api/bot/missed-checkin → backend increments consecutive_missed_checkins, marks calendar event missed, triggers alert pipeline"
+      ]
+    },
+    "ai_analysis_prompt": "You are a performance coach assistant for FlowState.\n\nClient context:\n- Name: {{name}}\n- Week: {{program_week}} of 12, Day: {{program_day}}\n- Phase: {{phase_name}} ({{month_theme}})\n- Chronotype: {{chronotype}}\n- Today's targets: Wake {{wake_time}} | Light {{light_min}}min | Exercise {{exercise_time}} | Caffeine cutoff {{caffeine_cutoff}} | Peak window {{peak_window}}\n- 7-day adherence: {{rolling_7d_adherence}}%\n- Consecutive missed check-ins before this: {{consecutive_missed}}\n\nAnalyse this {{check_in_type}} check-in photo. Respond with:\n1) What you observe relevant to their protocol\n2) Whether it aligns with their Week {{program_week}} targets\n3) One specific, actionable and encouraging note for today\n\nMax 120 words. Reference their actual targets by name. Be direct.",
+    "intervention_delivery": "When coach approves intervention in portal → API sets intervention.status=approved → bot polls /api/bot/pending-deliveries every 60s → posts final_message to client's discord_channel_id → bot POSTs delivery confirmation to /api/bot/delivered/:interventionId"
+  },
+
+  "api_endpoints": {
+    "auth": [
+      { "method": "POST", "path": "/api/auth/login", "access": "public" },
+      { "method": "POST", "path": "/api/auth/logout", "access": "authenticated" },
+      { "method": "GET", "path": "/api/auth/me", "description": "Returns user object with role", "access": "authenticated" }
+    ],
+    "clients": [
+      { "method": "GET", "path": "/api/clients", "description": "All active clients for master dashboard", "access": "coach" },
+      { "method": "GET", "path": "/api/clients/:id", "description": "Full client profile", "access": "coach | own_client" },
+      { "method": "POST", "path": "/api/clients/onboard", "description": "Create client — triggers Discord channel provisioning, calendar seeding, welcome message", "access": "coach" },
+      { "method": "PATCH", "path": "/api/clients/:id", "description": "Update client config or protocol targets", "access": "coach" },
+      { "method": "PATCH", "path": "/api/clients/:id/status", "description": "Set status: active, paused, completed", "access": "coach" }
+    ],
+    "checkins": [
+      { "method": "GET", "path": "/api/clients/:id/checkins", "description": "Paginated check-in history", "access": "coach | own_client" },
+      { "method": "GET", "path": "/api/clients/:id/checkins/stats", "description": "Aggregated stats: adherence, avg energy, avg sleep", "access": "coach | own_client" }
+    ],
+    "calendar": [
+      { "method": "GET", "path": "/api/clients/:id/calendar", "description": "All calendar events for client — used by Affine calendar page", "access": "coach | own_client" },
+      { "method": "PATCH", "path": "/api/calendar/:eventId/reschedule", "description": "Reschedule missed check-in to new time", "access": "coach" }
+    ],
+    "interventions": [
+      { "method": "GET", "path": "/api/interventions", "description": "All pending interventions across all clients", "access": "coach" },
+      { "method": "GET", "path": "/api/clients/:id/interventions", "description": "Intervention history for one client", "access": "coach | own_client" },
+      { "method": "POST", "path": "/api/interventions/manual", "description": "Coach creates manual intervention", "access": "coach" },
+      { "method": "PATCH", "path": "/api/interventions/:id/approve", "description": "Approve draft — sets status=approved, bot picks up on next poll", "access": "coach" },
+      { "method": "PATCH", "path": "/api/interventions/:id/edit", "description": "Edit final_message before approving", "access": "coach" },
+      { "method": "PATCH", "path": "/api/interventions/:id/dismiss", "description": "Dismiss without sending", "access": "coach" }
+    ],
+    "templates": [
+      { "method": "GET", "path": "/api/templates", "access": "coach" },
+      { "method": "POST", "path": "/api/templates", "access": "coach" },
+      { "method": "PATCH", "path": "/api/templates/:id", "access": "coach" },
+      { "method": "DELETE", "path": "/api/templates/:id", "description": "Soft delete — sets active=false", "access": "coach" }
+    ],
+    "summaries": [
+      { "method": "GET", "path": "/api/clients/:id/summaries", "description": "All weekly summaries for a client", "access": "coach" },
+      { "method": "PATCH", "path": "/api/summaries/:id/notes", "description": "Add/update coach notes on a summary", "access": "coach" }
+    ],
+    "dashboard": [
+      { "method": "GET", "path": "/api/dashboard/coach", "description": "Master view — all clients with adherence, flags, consecutive missed, last check-in", "access": "coach" },
+      { "method": "GET", "path": "/api/dashboard/client", "description": "Client home — own KPIs, this week targets, recent check-ins, upcoming calendar events", "access": "own_client" }
+    ],
+    "notifications": [
+      { "method": "GET", "path": "/api/notifications", "description": "Unread notifications for current user", "access": "authenticated" },
+      { "method": "PATCH", "path": "/api/notifications/:id/read", "access": "authenticated" },
+      { "method": "POST", "path": "/api/notifications/read-all", "access": "authenticated" }
+    ],
+    "bot_internal": {
+      "description": "Internal endpoints called only by the Discord bot using BOT_INTERNAL_API_TOKEN header. Not exposed to frontend.",
+      "endpoints": [
+        { "method": "GET", "path": "/api/bot/client-by-channel/:channelId", "description": "Resolve client record from Discord channel ID" },
+        { "method": "POST", "path": "/api/bot/checkin", "description": "Submit processed check-in after AI analysis — writes to check_ins, triggers alert pipeline" },
+        { "method": "POST", "path": "/api/bot/missed-checkin", "description": "Report missed check-in — increments counter, marks calendar event" },
+        { "method": "GET", "path": "/api/bot/pending-deliveries", "description": "Get approved interventions not yet delivered — bot polls this every 60s" },
+        { "method": "PATCH", "path": "/api/bot/delivered/:interventionId", "description": "Confirm delivery — sets intervention.status=sent, writes discord_message_id" }
+      ]
+    }
+  },
+
+  "automation_jobs": {
+    "runner": "node-cron inside Railway backend service",
+    "jobs": [
+      {
+        "name": "checkin_reminder_am",
+        "cron": "*/15 * * * *",
+        "description": "Every 15 min — find clients whose checkin_time_am falls in this 15-min window. POST AM reminder message to their Discord channel.",
+        "query": "SELECT * FROM clients WHERE status='active' AND checkin_time_am BETWEEN now()::time - interval '7 min' AND now()::time + interval '7 min'"
+      },
+      {
+        "name": "checkin_reminder_pm",
+        "cron": "*/15 * * * *",
+        "description": "Same logic for evening check-in time.",
+        "query": "SELECT * FROM clients WHERE status='active' AND checkin_time_pm BETWEEN now()::time - interval '7 min' AND now()::time + interval '7 min'"
+      },
+      {
+        "name": "missed_checkin_detector",
+        "cron": "0 * * * *",
+        "description": "Hourly — check for expected check-ins that never arrived. Mark as missed, increment consecutive_missed_checkins, trigger alert pipeline.",
+        "logic": "For each active client, check if a scheduled check-in window passed >2 hours ago with no matching check_ins row for today. If missed: UPDATE clients SET consecutive_missed_checkins++. UPDATE calendar_events SET status='missed'. Call alert_pipeline(clientId)."
+      },
+      {
+        "name": "phase_transition_check",
+        "cron": "0 0 * * *",
+        "description": "Midnight — recalculate program_week for every active client. If changed, update protocol targets from program_phases and queue a phase transition intervention.",
+        "logic": "program_day = CURRENT_DATE - program_start_date. program_week = CEIL(program_day / 7). If program_week changed: UPDATE clients SET (target_wake_time, target_bedtime, target_caffeine_cutoff, morning_light_duration_min, morning_exercise_time, target_peak_window) from program_phases WHERE week_number = new_week. INSERT interventions with trigger_condition='phase_transition' using INT-05 template. INSERT calendar_events type='phase_transition'."
+      },
+      {
+        "name": "weekly_summary_generator",
+        "cron": "0 1 * * 0",
+        "description": "Sunday 1am — aggregate each active client's week. Call Claude Sonnet for narrative. Insert weekly_summary row. Create coach notification.",
+        "logic": "For each active client: SELECT check_ins for the past 7 days, aggregate stats. Build prompt with stats + client context. Call Claude Sonnet API. INSERT weekly_summaries. INSERT notifications for coach with type='weekly_summary_ready'."
+      },
+      {
+        "name": "alert_pipeline",
+        "cron": "triggered_after_checkin_and_missed_checkin_events",
+        "description": "Runs after every check-in POST and after every missed check-in detection. Recalculates adherence. Creates intervention if threshold breached.",
+        "logic": "Recalculate rolling_7d_adherence from last 7 days of check_ins. UPDATE clients SET rolling_7d_adherence, consecutive_missed_checkins (reset to 0 if check-in received). Evaluate thresholds: if adherence < 80% OR consecutive_missed >= 2: check if pending intervention already exists — if not, select template (INT-01 through INT-04 based on condition), call Groq to personalise draft, INSERT interventions. UPDATE clients SET intervention_flag = true. INSERT notification for coach."
+      },
+      {
+        "name": "milestone_trigger",
+        "cron": "0 8 * * *",
+        "description": "Daily 8am — check for clients at milestone weeks (2,4,6,8,12) who haven't received their assessment yet.",
+        "logic": "SELECT clients WHERE program_week IN (2,4,6,8,12) AND status='active'. For each: check milestones table for existing row at this week. If none: queue milestone intervention using INT-08/INT-09, INSERT calendar_events type='milestone', INSERT notification for client."
+      },
+      {
+        "name": "calendar_hydrator",
+        "cron": "0 0 * * 1",
+        "description": "Monday midnight — pre-populate the week's check-in calendar events for all active clients.",
+        "logic": "For each active client, INSERT 14 calendar_events (2 per day × 7 days) with type='checkin_scheduled', scheduled_at = date + client.checkin_time_am or checkin_time_pm."
+      }
+    ]
+  },
+
+  "onboarding_flow": {
+    "trigger": "Coach fills onboarding form at /admin/onboard in coach workspace",
+    "steps": [
+      { "step": 1, "action": "API receives form POST to /api/clients/onboard" },
+      { "step": 2, "action": "Calculate chronotype from MEQ score: <42 = Evening, 42-58 = Intermediate, >58 = Morning" },
+      { "step": 3, "action": "Create user row (BetterAuth), send client portal invite email" },
+      { "step": 4, "action": "Create clients row with all profile data, Week 1 targets from program_phases, calculated chronotype" },
+      { "step": 5, "action": "Bot: create private Discord channel 'checkin-{name}-{id}', create client Discord role, set permissions (client role + coach role only)" },
+      { "step": 6, "action": "Write discord_channel_id back to clients row" },
+      { "step": 7, "action": "Create Affine workspace for client — set affine_workspace_id on clients row" },
+      { "step": 8, "action": "Seed client's Affine workspace pages from workspace_structure template" },
+      { "step": 9, "action": "Run calendar_hydrator for this client — seed first week's check-in events" },
+      { "step": 10, "action": "Bot: post welcome message to Discord channel with portal link and program start date" },
+      { "step": 11, "action": "Set client.status = 'active'" },
+      { "step": 12, "action": "Create notification for coach: client onboarded and active" }
+    ]
+  },
+
+  "environment_variables": {
+    "backend": [
+      "DATABASE_URL",
+      "BETTERAUTH_SECRET",
+      "BETTERAUTH_URL",
+      "DISCORD_BOT_TOKEN",
+      "DISCORD_GUILD_ID",
+      "DISCORD_CLIENT_CATEGORY_ID",
+      "BOT_INTERNAL_API_TOKEN",
+      "GEMINI_API_KEY",
+      "GROQ_API_KEY",
+      "ANTHROPIC_API_KEY",
+      "CLOUDFLARE_R2_ACCOUNT_ID",
+      "CLOUDFLARE_R2_ACCESS_KEY_ID",
+      "CLOUDFLARE_R2_SECRET_ACCESS_KEY",
+      "CLOUDFLARE_R2_BUCKET_NAME",
+      "BACKEND_URL"
+    ],
+    "bot": [
+      "DISCORD_BOT_TOKEN",
+      "DISCORD_GUILD_ID",
+      "DISCORD_CLIENT_CATEGORY_ID",
+      "BACKEND_URL",
+      "BOT_INTERNAL_API_TOKEN"
+    ],
+    "frontend_affine": [
+      "NEXT_PUBLIC_API_URL",
+      "BETTERAUTH_URL",
+      "BETTERAUTH_SECRET"
+    ]
+  },
+
+  "build_phases": {
+    "phase_0": {
+      "name": "Schema & Seed Data",
+      "prompt": "Using PRD.json as the source of truth, generate two files: (1) schema.sql — CREATE TABLE statements for all tables in database_schema, including constraints, foreign keys, and indexes on client_id and discord_channel_id. (2) seed.sql — INSERT statements for all rows in program_phases.seed_data and intervention_templates.seed_data. Nothing else."
+    },
+    "phase_1": {
+      "name": "Affine Fork — Strip & Brand",
+      "prompt": "Fork the Affine repository (github.com/toeverything/AFFiNE). Remove all packages listed in affine_fork.strip_instructions.remove_packages. Disable all features in affine_fork.strip_instructions.disable_features. Keep everything in affine_fork.strip_instructions.keep. Then: (1) Replace Affine's auth system with a BetterAuth JWT integration — read session from BetterAuth on app load. (2) Add a data bridge layer: intercept all Affine page and database read/write calls and route them to NEXT_PUBLIC_API_URL instead of Affine's backend. (3) Add role-based workspace routing: role=coach loads coach_workspace pages, role=client loads their own client_workspace pages. (4) Apply FlowState branding (colours, logo). The result must run with npm run dev and build with npm run build."
+    },
+    "phase_2": {
+      "name": "Backend API",
+      "prompt": "Using PRD.json, implement the backend using Hono + TypeScript + Neon serverless driver (@neondatabase/serverless) + BetterAuth. Implement every endpoint in api_endpoints including bot_internal endpoints (protected by BOT_INTERNAL_API_TOKEN header check, not BetterAuth). Implement all cron jobs in automation_jobs using node-cron. Implement the alert_pipeline as a callable function triggered after check-in POST and missed-checkin events. AI calls: use Gemini Flash for photo analysis (in bot only), Groq for draft intervention personalisation, Claude Sonnet for weekly summaries. Do not build the Discord bot in this phase."
+    },
+    "phase_3": {
+      "name": "Discord Bot",
+      "prompt": "Using PRD.json, implement the Discord bot using Discord.js v14. The bot must: (1) On startup, register all slash_commands. (2) Send AM and PM check-in reminders by polling /api/bot/pending-reminders (add this endpoint to backend if needed) or via an internal schedule. (3) On receiving a photo in any client channel: call GET /api/bot/client-by-channel/:channelId, upload photo to Cloudflare R2, call Gemini Flash Vision with the ai_analysis_prompt from discord_bot section, POST result to /api/bot/checkin. (4) Poll GET /api/bot/pending-deliveries every 60 seconds — for each approved intervention, post final_message to client's discord_channel_id, then PATCH /api/bot/delivered/:interventionId. (5) Implement missed check-in detection as described in check_in_flow.missed_checkin_flow."
+    },
+    "phase_4": {
+      "name": "Coach Admin Workspace",
+      "prompt": "Using PRD.json affine_fork.workspace_structure.coach_workspace, implement all coach admin pages inside the stripped Affine shell. Each page fetches data from the backend API using endpoints in api_endpoints. Master Dashboard: table of all clients sorted by rolling_7d_adherence ascending, colour-coded rows (red <80%, yellow 80-90%, green >90%). Intervention Queue: list pending interventions with approve/edit/dismiss actions — approve calls PATCH /api/interventions/:id/approve. Template Library: editable list. Weekly Reports: week selector with AI narrative per client. Onboard New Client: multi-step form that POSTs to /api/clients/onboard. All routes protected by coach role check."
+    },
+    "phase_5": {
+      "name": "Client Workspace",
+      "prompt": "Using PRD.json affine_fork.workspace_structure.client_workspace, implement all client portal pages inside the stripped Affine shell. Dashboard: KPI tiles + calendar widget + last 3 check-ins. Calendar page: full monthly calendar using calendar_events data from GET /api/clients/:id/calendar — green=completed, red=missed, grey=scheduled, blue=milestone/phase_transition. Progress page: recharts line charts for adherence trend, energy, focus, sleep. Check-In History: paginated log with AI feedback. Clients must only see their own data — enforce at both API level (already done in phase_2) and by routing client role to their own workspace only."
+    },
+    "phase_6": {
+      "name": "Deployment",
+      "prompt": "Using PRD.json stack.deployment and environment_variables sections, generate: (1) railway.json for the backend Hono API service. (2) A separate railway.json for the Discord bot service. (3) vercel.json for the Affine frontend. (4) GitHub Actions workflow (.github/workflows/deploy.yml) that on push to main: runs tests, deploys backend + bot to Railway, deploys frontend to Vercel. (5) .env.example for each of the three services using the keys in environment_variables."
+    }
+  }
+}

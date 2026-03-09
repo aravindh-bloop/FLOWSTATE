@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=<%= VIEWPORT_FIT %>"
+    />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
+    <title>FlowState</title>
+    <meta name="theme-color" content="#0fa884" />
+    <%= PRECONNECT %>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" sizes="192x192" href="/favicon-192.png" />
+    <link rel="shortcut icon" href="/favicon.ico?v=2" />
+    <meta name="emotion-insertion-point" content="" />
+    <meta property="description" content="90-day human performance coaching platform" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FlowState — 90-day human performance coaching" />
+    <meta name="twitter:description" content="90-day human performance coaching platform" />
+    <meta property="og:title" content="FlowState — 90-day human performance coaching" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content="90-day human performance coaching platform" />
+  </head>
+
+  <body>
+    <div id="app" data-version="<%= GIT_SHORT_SHA %>"></div>
+  </body>
+</html>
