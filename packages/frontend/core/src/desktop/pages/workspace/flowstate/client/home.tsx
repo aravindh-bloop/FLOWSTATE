@@ -6,7 +6,10 @@
  * upcoming calendar events — all driven from GET /api/dashboard/client.
  */
 
-import { useFlowStateAuth, useFlowStateData } from '@affine/core/modules/flowstate';
+import {
+  useFlowStateAuth,
+  useFlowStateData,
+} from '@affine/core/modules/flowstate';
 
 import {
   Card,
@@ -17,8 +20,8 @@ import {
   ProgressBar,
   Tag,
 } from '../shared/page-shell';
-import { useAsync } from '../shared/use-async';
 import type { ClientDashboard } from '../shared/types';
+import { useAsync } from '../shared/use-async';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -47,7 +50,8 @@ export function Component() {
     );
   }
 
-  const { client, kpis, this_week_targets, recent_checkins, upcoming_events } = data;
+  const { client, kpis, this_week_targets, recent_checkins, upcoming_events } =
+    data;
   const firstName = (user?.name ?? client.full_name).split(' ')[0];
 
   const adh = kpis.rolling_7d_adherence;
@@ -55,8 +59,8 @@ export function Component() {
     adh >= 90
       ? 'var(--affine-success-color)'
       : adh >= 80
-      ? 'var(--affine-warning-color)'
-      : 'var(--affine-error-color)';
+        ? 'var(--affine-warning-color)'
+        : 'var(--affine-error-color)';
 
   return (
     <PageShell
@@ -78,10 +82,26 @@ export function Component() {
           unit="%"
           accent={adhColor}
         />
-        <KpiTile label="Avg Energy" value={kpis.avg_energy_7d?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Focus" value={kpis.avg_focus_7d?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Sleep" value={kpis.avg_sleep_7d?.toFixed(1) ?? '—'} unit="h" />
-        <KpiTile label="Current Streak" value={kpis.streak_days ?? 0} unit=" days" />
+        <KpiTile
+          label="Avg Energy"
+          value={kpis.avg_energy_7d?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Focus"
+          value={kpis.avg_focus_7d?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Sleep"
+          value={kpis.avg_sleep_7d?.toFixed(1) ?? '—'}
+          unit="h"
+        />
+        <KpiTile
+          label="Current Streak"
+          value={kpis.streak_days ?? 0}
+          unit=" days"
+        />
       </div>
 
       {/* Two-column: targets + mini calendar */}
@@ -95,17 +115,37 @@ export function Component() {
       >
         {/* This week's targets */}
         <Card>
-          <SectionLabel>This Week's Targets</SectionLabel>
-          <TargetRow emoji="☀️" label="Wake Time" value={this_week_targets.wake_time} />
-          <TargetRow emoji="🌙" label="Bedtime" value={this_week_targets.bedtime} />
-          <TargetRow emoji="☕" label="Caffeine Cutoff" value={this_week_targets.caffeine_cutoff} />
+          <SectionLabel>This Week&apos;s Targets</SectionLabel>
+          <TargetRow
+            emoji="☀️"
+            label="Wake Time"
+            value={this_week_targets.wake_time}
+          />
+          <TargetRow
+            emoji="🌙"
+            label="Bedtime"
+            value={this_week_targets.bedtime}
+          />
+          <TargetRow
+            emoji="☕"
+            label="Caffeine Cutoff"
+            value={this_week_targets.caffeine_cutoff}
+          />
           <TargetRow
             emoji="🌿"
             label="Morning Light"
             value={`${this_week_targets.morning_light_min} min`}
           />
-          <TargetRow emoji="🏃" label="Exercise Window" value={this_week_targets.exercise_time} />
-          <TargetRow emoji="🧠" label="Peak Focus Window" value={this_week_targets.peak_window} />
+          <TargetRow
+            emoji="🏃"
+            label="Exercise Window"
+            value={this_week_targets.exercise_time}
+          />
+          <TargetRow
+            emoji="🧠"
+            label="Peak Focus Window"
+            value={this_week_targets.peak_window}
+          />
         </Card>
 
         {/* Upcoming events */}
@@ -231,8 +271,8 @@ export function Component() {
                       ci.adherence_score >= 90
                         ? 'green'
                         : ci.adherence_score >= 70
-                        ? 'amber'
-                        : 'red'
+                          ? 'amber'
+                          : 'red'
                     }
                   >
                     {ci.adherence_score}%

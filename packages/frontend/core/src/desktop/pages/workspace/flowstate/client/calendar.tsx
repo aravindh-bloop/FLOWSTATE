@@ -6,35 +6,41 @@
  * Colour coding: green=completed, red=missed, grey=scheduled,
  * blue=milestone / phase_transition.
  */
+import {
+  useFlowStateAuth,
+  useFlowStateData,
+} from '@affine/core/modules/flowstate';
 import { useState } from 'react';
-import { useFlowStateAuth, useFlowStateData } from '@affine/core/modules/flowstate';
 
 import {
   Btn,
-  Card,
   ErrorBanner,
   LoadingSkeleton,
   PageShell,
   Tag,
 } from '../shared/page-shell';
-import { useAsync } from '../shared/use-async';
 import type { CalendarEvent } from '../shared/types';
+import { useAsync } from '../shared/use-async';
 
 // ─── Colour helpers ───────────────────────────────────────────────────────────
 
 function eventColor(ev: CalendarEvent): string {
   if (ev.status === 'completed') return 'var(--affine-success-color)';
   if (ev.status === 'missed') return 'var(--affine-error-color)';
-  if (ev.type === 'milestone' || ev.type === 'phase_transition') return '#3b82f6';
+  if (ev.type === 'milestone' || ev.type === 'phase_transition')
+    return '#3b82f6';
   if (ev.type === 'intervention') return 'var(--affine-warning-color)';
   return 'var(--affine-text-disable-color)';
 }
 
 function eventBg(ev: CalendarEvent): string {
-  if (ev.status === 'completed') return 'var(--affine-background-success-color)';
+  if (ev.status === 'completed')
+    return 'var(--affine-background-success-color)';
   if (ev.status === 'missed') return 'var(--affine-background-error-color)';
-  if (ev.type === 'milestone' || ev.type === 'phase_transition') return 'rgba(59,130,246,0.1)';
-  if (ev.type === 'intervention') return 'var(--affine-background-warning-color)';
+  if (ev.type === 'milestone' || ev.type === 'phase_transition')
+    return 'rgba(59,130,246,0.1)';
+  if (ev.type === 'intervention')
+    return 'var(--affine-background-warning-color)';
   return 'var(--affine-background-tertiary-color)';
 }
 
@@ -43,7 +49,8 @@ function eventBg(ev: CalendarEvent): string {
 export function Component() {
   const { user } = useFlowStateAuth();
   const { fetchCalendar } = useFlowStateData();
-  const clientId = (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
+  const clientId =
+    (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
 
   const [viewDate, setViewDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -60,18 +67,21 @@ export function Component() {
   for (const ev of events) {
     const d = ev.scheduled_at.split('T')[0];
     if (!byDay.has(d)) byDay.set(d, []);
-    byDay.get(d)!.push(ev);
+    byDay.get(d)?.push(ev);
   }
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const monthName = viewDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+  const monthName = viewDate.toLocaleString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
 
   // Calendar grid
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: Array<number | null> = [
-    ...Array(firstDay).fill(null),
+    ...Array.from({ length: firstDay }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
@@ -125,7 +135,14 @@ export function Component() {
           </div>
 
           {/* Day-of-week headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 2 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: 2,
+              marginBottom: 2,
+            }}
+          >
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
               <div
                 key={d}
@@ -167,9 +184,7 @@ export function Component() {
                 return (
                   <div
                     key={dateStr}
-                    onClick={() =>
-                      setSelectedDay(isSelected ? null : dateStr)
-                    }
+                    onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                     style={{
                       minHeight: 72,
                       border: isSelected
@@ -196,7 +211,13 @@ export function Component() {
                     >
                       {day}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                    >
                       {dayEvents.slice(0, 3).map(ev => (
                         <div
                           key={ev.id}
@@ -283,11 +304,14 @@ export function Component() {
                 marginBottom: 12,
               }}
             >
-              {new Date(selectedDay + 'T12:00:00').toLocaleDateString(undefined, {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {new Date(selectedDay + 'T12:00:00').toLocaleDateString(
+                undefined,
+                {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                }
+              )}
             </div>
             {selectedEvents.length === 0 ? (
               <p
@@ -326,10 +350,10 @@ export function Component() {
                         ev.status === 'completed'
                           ? 'green'
                           : ev.status === 'missed'
-                          ? 'red'
-                          : ev.type === 'milestone'
-                          ? 'blue'
-                          : 'neutral'
+                            ? 'red'
+                            : ev.type === 'milestone'
+                              ? 'blue'
+                              : 'neutral'
                       }
                     >
                       {ev.status}

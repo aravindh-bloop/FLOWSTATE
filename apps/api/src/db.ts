@@ -6,7 +6,7 @@
  * `pool` is exposed for transactions.
  */
 
-import { neonConfig, Pool } from '@neondatabase/serverless';
+import { neonConfig, Pool, type PoolClient } from '@neondatabase/serverless';
 import ws from 'ws';
 
 // Required for non-Cloudflare environments (Railway)
@@ -38,7 +38,7 @@ export async function queryOne<T = Record<string, unknown>>(
 
 /** Run a query inside a transaction. */
 export async function transaction<T>(
-  fn: (client: Awaited<ReturnType<typeof pool.connect>>) => Promise<T>
+  fn: (client: PoolClient) => Promise<T>
 ): Promise<T> {
   const client = await pool.connect();
   try {

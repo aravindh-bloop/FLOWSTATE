@@ -1,0 +1,158 @@
+
+  x eslint-plugin-react(jsx-no-useless-fragment): Fragments should contain more than one child.
+    ,-[packages/frontend/core/src/modules/flowstate/routing/workspace-router.tsx:39:21]
+ 38 | 
+ 39 |   return children ? <>{children}</> : <Outlet />;
+    :                     ^^
+ 40 | }
+    `----
+
+  x eslint-plugin-react(jsx-no-useless-fragment): Fragments should contain more than one child.
+    ,-[packages/frontend/core/src/modules/flowstate/routing/workspace-router.tsx:55:21]
+ 54 | 
+ 55 |   return children ? <>{children}</> : <Outlet />;
+    :                     ^^
+ 56 | }
+    `----
+
+  x eslint(no-unused-vars): Identifier 'useCallback' is imported but never used.
+   ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/registrations.tsx:4:10]
+ 3 |  */
+ 4 | import { useCallback, useState } from 'react';
+   :          ^^^^^|^^^^^
+   :               `-- 'useCallback' is imported here
+ 5 | import { useNavigate, useParams } from 'react-router-dom';
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Variable 'workspaceId' is declared but never used. Unused variables should start with a '_'.
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/registrations.tsx:20:13]
+ 19 | export function Component() {
+ 20 |     const { workspaceId } = useParams<{ workspaceId: string }>();
+    :             ^^^^^|^^^^^
+    :                  `-- 'workspaceId' is declared here
+ 21 |     const navigate = useNavigate();
+    `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Variable 'navigate' is declared but never used. Unused variables should start with a '_'.
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/registrations.tsx:21:11]
+ 20 |     const { workspaceId } = useParams<{ workspaceId: string }>();
+ 21 |     const navigate = useNavigate();
+    :           ^^^^|^^^
+    :               `-- 'navigate' is declared here
+ 22 |     const { fetchRegistrations, approveRegistration, rejectRegistration } = useFlowStateData();
+    `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Identifier 'SparkLine' is imported but never used.
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/progress.tsx:17:3]
+ 16 |   ProgressBar,
+ 17 |   SparkLine,
+    :   ^^^^|^^^^
+    :       `-- 'SparkLine' is imported here
+ 18 |   Tag,
+    `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Parameter 'weeks' is declared but never used. Unused parameters should start with a '_'.
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/progress.tsx:327:3]
+ 326 |   values,
+ 327 |   weeks,
+     :   ^^|^^
+     :     `-- 'weeks' is declared here
+ 328 |   color,
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Parameter 'unit' is declared but never used. Unused parameters should start with a '_'.
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/progress.tsx:330:3]
+ 329 |   target,
+ 330 |   unit,
+     :   ^^|^
+     :     `-- 'unit' is declared here
+ 331 | }: {
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Identifier 'Card' is imported but never used.
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/calendar.tsx:14:3]
+ 13 |   Btn,
+ 14 |   Card,
+    :   ^^|^
+    :     `-- 'Card' is imported here
+ 15 |   ErrorBanner,
+    `----
+  help: Consider removing this import.
+
+  x eslint-plugin-unicorn(new-for-builtins): Use `new Array()` instead of `Array()`
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/calendar.tsx:74:8]
+ 73 |   const cells: Array<number | null> = [
+ 74 |     ...Array(firstDay).fill(null),
+    :        ^^^^^^^^^^^^^^^
+ 75 |     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+    `----
+
+  x typescript-eslint(no-non-null-assertion): Forbidden non-null assertion.
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/calendar.tsx:63:5]
+ 62 |     if (!byDay.has(d)) byDay.set(d, []);
+ 63 |     byDay.get(d)!.push(ev);
+    :     ^^^^^^^^^^^^^
+ 64 |   }
+    `----
+  help: Consider using the optional chain operator `?.` instead. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator.
+
+  x eslint(no-unused-vars): Identifier 'useCallback' is imported but never used.
+   ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/checkins.tsx:7:10]
+ 6 |  */
+ 7 | import { useCallback, useState } from 'react';
+   :          ^^^^^|^^^^^
+   :               `-- 'useCallback' is imported here
+ 8 | import { useFlowStateAuth, useFlowStateData } from '@affine/core/modules/flowstate';
+   `----
+  help: Consider removing this import.
+
+  x eslint(no-unused-vars): Parameter 'client' is declared but never used. Unused parameters should start with a '_'.
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/reports.tsx:154:3]
+ 153 |   summary,
+ 154 |   client,
+     :   ^^^|^^
+     :      `-- 'client' is declared here
+ 155 |   isEditing,
+     `----
+  help: Consider removing this parameter.
+
+  x eslint-plugin-react(no-unescaped-entities): `'` can be escaped with &apos; or &lsquo; or &#39; or &rsquo;
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/onboard.tsx:316:25]
+ 315 |       >
+ 316 |         Enter the client's Morningness-Eveningness Questionnaire score (16–86).
+     :                         ^
+ 317 |         The chronotype and Week 1 protocol targets are derived automatically.
+     `----
+
+  x eslint-plugin-react(no-unescaped-entities): `"` can be escaped with &quot; or &ldquo; or &#34; or &rdquo;
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/onboard.tsx:425:55]
+ 424 |       >
+ 425 |         Review everything before submitting. Clicking "Onboard Client" will
+     :                                                       ^
+ 426 |         automatically provision Discord, Affine workspace, calendar events, and
+     `----
+
+  x eslint-plugin-react(no-unescaped-entities): `"` can be escaped with &quot; or &ldquo; or &#34; or &rdquo;
+     ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/coach/onboard.tsx:425:70]
+ 424 |       >
+ 425 |         Review everything before submitting. Clicking "Onboard Client" will
+     :                                                                      ^
+ 426 |         automatically provision Discord, Affine workspace, calendar events, and
+     `----
+
+  x eslint-plugin-react(no-unescaped-entities): `'` can be escaped with &apos; or &lsquo; or &#39; or &rsquo;
+    ,-[packages/frontend/core/src/desktop/pages/workspace/flowstate/client/home.tsx:98:34]
+ 97 |         <Card>
+ 98 |           <SectionLabel>This Week's Targets</SectionLabel>
+    :                                  ^
+ 99 |           <TargetRow emoji="☀️" label="Wake Time" value={this_week_targets.wake_time} />
+    `----
+
+Found 0 warnings and 17 errors.
+Finished in 4.1s on 5827 files with 151 rules using 8 threads.

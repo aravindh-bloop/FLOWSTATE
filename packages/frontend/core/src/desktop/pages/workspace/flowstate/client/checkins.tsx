@@ -4,8 +4,11 @@
  * Route: /checkins (inside client workspace)
  * Paginated log of all Discord check-ins with AI feedback and photo.
  */
-import { useCallback, useState } from 'react';
-import { useFlowStateAuth, useFlowStateData } from '@affine/core/modules/flowstate';
+import {
+  useFlowStateAuth,
+  useFlowStateData,
+} from '@affine/core/modules/flowstate';
+import { useState } from 'react';
 
 import {
   Btn,
@@ -15,15 +18,16 @@ import {
   PageShell,
   Tag,
 } from '../shared/page-shell';
-import { useAsync } from '../shared/use-async';
 import type { CheckIn } from '../shared/types';
+import { useAsync } from '../shared/use-async';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Component() {
   const { user } = useFlowStateAuth();
   const { fetchCheckIns } = useFlowStateData();
-  const clientId = (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
+  const clientId =
+    (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
 
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -47,7 +51,9 @@ export function Component() {
       {error && <ErrorBanner message={error} />}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div
+        style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}
+      >
         {(['all', 'morning', 'evening', 'wearable'] as const).map(t => (
           <button
             key={t}
@@ -66,7 +72,9 @@ export function Component() {
                   ? 'var(--affine-primary-color)'
                   : 'var(--affine-background-secondary-color)',
               color:
-                typeFilter === t ? '#fff' : 'var(--affine-text-secondary-color)',
+                typeFilter === t
+                  ? '#fff'
+                  : 'var(--affine-text-secondary-color)',
               fontWeight: typeFilter === t ? 600 : 400,
             }}
           >
@@ -149,15 +157,32 @@ function CheckInCard({ checkIn: ci }: { checkIn: CheckIn }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Tag color={ci.type === 'morning' ? 'blue' : ci.type === 'evening' ? 'neutral' : 'green'}>
-            {ci.type === 'morning' ? '☀️ Morning' : ci.type === 'evening' ? '🌙 Evening' : '📊 Wearable'}
+          <Tag
+            color={
+              ci.type === 'morning'
+                ? 'blue'
+                : ci.type === 'evening'
+                  ? 'neutral'
+                  : 'green'
+            }
+          >
+            {ci.type === 'morning'
+              ? '☀️ Morning'
+              : ci.type === 'evening'
+                ? '🌙 Evening'
+                : '📊 Wearable'}
           </Tag>
           <span
-            style={{ fontSize: 12, color: 'var(--affine-text-secondary-color)' }}
+            style={{
+              fontSize: 12,
+              color: 'var(--affine-text-secondary-color)',
+            }}
           >
             Week {ci.program_week} · Day {ci.program_day}
           </span>
-          <span style={{ fontSize: 12, color: 'var(--affine-text-disable-color)' }}>
+          <span
+            style={{ fontSize: 12, color: 'var(--affine-text-disable-color)' }}
+          >
             {submitDate.toLocaleDateString(undefined, {
               weekday: 'short',
               month: 'short',
@@ -176,8 +201,8 @@ function CheckInCard({ checkIn: ci }: { checkIn: CheckIn }) {
                 ci.adherence_score >= 90
                   ? 'green'
                   : ci.adherence_score >= 70
-                  ? 'amber'
-                  : 'red'
+                    ? 'amber'
+                    : 'red'
               }
             >
               {ci.adherence_score}% Adherence
@@ -199,12 +224,16 @@ function CheckInCard({ checkIn: ci }: { checkIn: CheckIn }) {
       {(ci.exercise_completed != null ||
         ci.morning_light_completed != null ||
         ci.caffeine_cutoff_met != null) && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            marginBottom: 12,
+            flexWrap: 'wrap',
+          }}
+        >
           {ci.exercise_completed != null && (
-            <ProtocolBadge
-              label="Exercise"
-              met={ci.exercise_completed}
-            />
+            <ProtocolBadge label="Exercise" met={ci.exercise_completed} />
           )}
           {ci.morning_light_completed != null && (
             <ProtocolBadge
@@ -307,7 +336,11 @@ function CheckInCard({ checkIn: ci }: { checkIn: CheckIn }) {
               AI Feedback
               {ci.ai_model_used && (
                 <span
-                  style={{ fontWeight: 400, color: 'var(--affine-text-disable-color)', marginLeft: 6 }}
+                  style={{
+                    fontWeight: 400,
+                    color: 'var(--affine-text-disable-color)',
+                    marginLeft: 6,
+                  }}
                 >
                   via {ci.ai_model_used}
                 </span>
@@ -361,10 +394,16 @@ function CheckInCard({ checkIn: ci }: { checkIn: CheckIn }) {
             <StatBadge label="HRV" value={`${ci.wearable_hrv} ms`} />
           )}
           {ci.wearable_recovery_score != null && (
-            <StatBadge label="Recovery" value={`${ci.wearable_recovery_score}%`} />
+            <StatBadge
+              label="Recovery"
+              value={`${ci.wearable_recovery_score}%`}
+            />
           )}
           {ci.wearable_sleep_score != null && (
-            <StatBadge label="Sleep Score" value={`${ci.wearable_sleep_score}`} />
+            <StatBadge
+              label="Sleep Score"
+              value={`${ci.wearable_sleep_score}`}
+            />
           )}
         </div>
       )}
@@ -382,7 +421,9 @@ function ProtocolBadge({ label, met }: { label: string; met: boolean }) {
         background: met
           ? 'var(--affine-background-success-color)'
           : 'var(--affine-background-error-color)',
-        color: met ? 'var(--affine-success-color)' : 'var(--affine-error-color)',
+        color: met
+          ? 'var(--affine-success-color)'
+          : 'var(--affine-error-color)',
         fontWeight: 600,
       }}
     >
@@ -402,8 +443,12 @@ function StatBadge({ label, value }: { label: string; value: string }) {
         fontSize: 11,
       }}
     >
-      <span style={{ color: 'var(--affine-text-secondary-color)' }}>{label}: </span>
-      <span style={{ fontWeight: 600, color: 'var(--affine-text-primary-color)' }}>
+      <span style={{ color: 'var(--affine-text-secondary-color)' }}>
+        {label}:{' '}
+      </span>
+      <span
+        style={{ fontWeight: 600, color: 'var(--affine-text-primary-color)' }}
+      >
         {value}
       </span>
     </div>

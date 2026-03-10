@@ -4926,6 +4926,7 @@ __metadata:
   dependencies:
     "@anthropic-ai/sdk": "npm:^0.36.0"
     "@hono/node-server": "npm:^1.13.0"
+    "@hono/zod-validator": "npm:^0.4.3"
     "@neondatabase/serverless": "npm:^0.10.0"
     "@types/node": "npm:^22.0.0"
     "@types/node-cron": "npm:^3.0.11"
@@ -5716,6 +5717,16 @@ __metadata:
   peerDependencies:
     hono: ^4
   checksum: 10/1718910924944bfa2f2649ae102fbdaee42e388ed373f1e36bb2674447b9f1a64a9344908c046c6100e6c387fe2d1dab5c95684cb3a415ba0a0b719fbef0a6cb
+  languageName: node
+  linkType: hard
+
+"@hono/zod-validator@npm:^0.4.3":
+  version: 0.4.3
+  resolution: "@hono/zod-validator@npm:0.4.3"
+  peerDependencies:
+    hono: ">=3.9.0"
+    zod: ^3.19.1
+  checksum: 10/68a1fd6c0677adc9a5a8ccd5dc24fdd3f8a8c28eabac1c8a6179b8e3f0fa8d0bebe76e9ddc1a1b6b0d311ee2c27df3c7f02248bb2d5d10bdc0a6690fb6f1b68c
   languageName: node
   linkType: hard
 

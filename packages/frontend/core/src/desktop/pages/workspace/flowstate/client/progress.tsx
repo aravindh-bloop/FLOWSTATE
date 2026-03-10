@@ -5,7 +5,10 @@
  * Line charts for adherence, energy, focus, and sleep trends
  * plus milestone comparison table — using lightweight inline SVG charts.
  */
-import { useFlowStateAuth, useFlowStateData } from '@affine/core/modules/flowstate';
+import {
+  useFlowStateAuth,
+  useFlowStateData,
+} from '@affine/core/modules/flowstate';
 
 import {
   Card,
@@ -14,20 +17,24 @@ import {
   LoadingSkeleton,
   PageShell,
   ProgressBar,
-  SparkLine,
   Tag,
 } from '../shared/page-shell';
-import { useAsync } from '../shared/use-async';
 import type { CheckInStats } from '../shared/types';
+import { useAsync } from '../shared/use-async';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Component() {
   const { user } = useFlowStateAuth();
   const { fetchCheckInStats } = useFlowStateData();
-  const clientId = (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
+  const clientId =
+    (user as unknown as { clientId?: string })?.clientId ?? user?.id ?? '';
 
-  const { data: stats, loading, error } = useAsync<CheckInStats>(
+  const {
+    data: stats,
+    loading,
+    error,
+  } = useAsync<CheckInStats>(
     () => fetchCheckInStats(clientId) as Promise<CheckInStats>,
     [fetchCheckInStats, clientId]
   );
@@ -60,7 +67,9 @@ export function Component() {
       subtitle={`${stats.total - stats.missed} check-ins completed · ${stats.missed} missed`}
     >
       {/* Summary KPIs */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+      <div
+        style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}
+      >
         <KpiTile
           label="Overall Adherence"
           value={stats.avg_adherence?.toFixed(1) ?? '—'}
@@ -69,13 +78,25 @@ export function Component() {
             stats.avg_adherence >= 90
               ? 'var(--affine-success-color)'
               : stats.avg_adherence >= 80
-              ? 'var(--affine-warning-color)'
-              : 'var(--affine-error-color)'
+                ? 'var(--affine-warning-color)'
+                : 'var(--affine-error-color)'
           }
         />
-        <KpiTile label="Avg Energy" value={stats.avg_energy?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Focus" value={stats.avg_focus?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Sleep" value={stats.avg_sleep_hours?.toFixed(1) ?? '—'} unit="h" />
+        <KpiTile
+          label="Avg Energy"
+          value={stats.avg_energy?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Focus"
+          value={stats.avg_focus?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Sleep"
+          value={stats.avg_sleep_hours?.toFixed(1) ?? '—'}
+          unit="h"
+        />
       </div>
 
       {/* Charts: 2×2 grid */}
@@ -124,7 +145,12 @@ export function Component() {
       {/* Week-by-week table */}
       {by_week.length > 0 && (
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--affine-border-color)' }}>
+          <div
+            style={{
+              padding: '14px 20px',
+              borderBottom: '1px solid var(--affine-border-color)',
+            }}
+          >
             <span
               style={{
                 fontSize: 12,
@@ -139,24 +165,30 @@ export function Component() {
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'var(--affine-background-tertiary-color)' }}>
-                {['Week', 'Adherence', 'Energy', 'Focus', 'Sleep', 'Trend'].map(h => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: '8px 16px',
-                      textAlign: 'left',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                      color: 'var(--affine-text-secondary-color)',
-                      borderBottom: '1px solid var(--affine-border-color)',
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
+              <tr
+                style={{
+                  background: 'var(--affine-background-tertiary-color)',
+                }}
+              >
+                {['Week', 'Adherence', 'Energy', 'Focus', 'Sleep', 'Trend'].map(
+                  h => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: '8px 16px',
+                        textAlign: 'left',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        color: 'var(--affine-text-secondary-color)',
+                        borderBottom: '1px solid var(--affine-border-color)',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
@@ -165,23 +197,23 @@ export function Component() {
                   w.adherence >= 90
                     ? 'var(--affine-success-color)'
                     : w.adherence >= 80
-                    ? 'var(--affine-warning-color)'
-                    : 'var(--affine-error-color)';
+                      ? 'var(--affine-warning-color)'
+                      : 'var(--affine-error-color)';
                 const prev = by_week[idx - 1];
                 const trend =
                   prev == null
                     ? '—'
                     : w.adherence > prev.adherence
-                    ? '↑'
-                    : w.adherence < prev.adherence
-                    ? '↓'
-                    : '→';
+                      ? '↑'
+                      : w.adherence < prev.adherence
+                        ? '↓'
+                        : '→';
                 const trendColor =
                   trend === '↑'
                     ? 'var(--affine-success-color)'
                     : trend === '↓'
-                    ? 'var(--affine-error-color)'
-                    : 'var(--affine-text-secondary-color)';
+                      ? 'var(--affine-error-color)'
+                      : 'var(--affine-text-secondary-color)';
 
                 return (
                   <tr
@@ -195,11 +227,27 @@ export function Component() {
                   >
                     <td style={tdStyle}>Week {w.week}</td>
                     <td style={tdStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
                         <div style={{ width: 60 }}>
-                          <ProgressBar value={w.adherence} max={100} color={adhColor} />
+                          <ProgressBar
+                            value={w.adherence}
+                            max={100}
+                            color={adhColor}
+                          />
                         </div>
-                        <span style={{ fontSize: 12, color: adhColor, fontWeight: 600 }}>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: adhColor,
+                            fontWeight: 600,
+                          }}
+                        >
                           {w.adherence.toFixed(0)}%
                         </span>
                       </div>
@@ -210,8 +258,8 @@ export function Component() {
                           w.energy >= 8
                             ? 'green'
                             : w.energy >= 6
-                            ? 'amber'
-                            : 'red'
+                              ? 'amber'
+                              : 'red'
                         }
                       >
                         {w.energy?.toFixed(1) ?? '—'}
@@ -223,17 +271,22 @@ export function Component() {
                           w.focus >= 8
                             ? 'green'
                             : w.focus >= 6
-                            ? 'amber'
-                            : 'red'
+                              ? 'amber'
+                              : 'red'
                         }
                       >
                         {w.focus?.toFixed(1) ?? '—'}
                       </Tag>
                     </td>
-                    <td style={tdStyle}>
-                      {w.sleep?.toFixed(1) ?? '—'}h
-                    </td>
-                    <td style={{ ...tdStyle, color: trendColor, fontWeight: 700, fontSize: 16 }}>
+                    <td style={tdStyle}>{w.sleep?.toFixed(1) ?? '—'}h</td>
+                    <td
+                      style={{
+                        ...tdStyle,
+                        color: trendColor,
+                        fontWeight: 700,
+                        fontSize: 16,
+                      }}
+                    >
                       {trend}
                     </td>
                   </tr>
@@ -253,7 +306,6 @@ function MetricChart({
   title,
   unit,
   values,
-  weeks,
   color,
   target,
 }: {
@@ -268,7 +320,9 @@ function MetricChart({
     return (
       <Card>
         <ChartTitle>{title}</ChartTitle>
-        <p style={{ fontSize: 13, color: 'var(--affine-text-secondary-color)' }}>
+        <p
+          style={{ fontSize: 13, color: 'var(--affine-text-secondary-color)' }}
+        >
           Not enough data yet.
         </p>
       </Card>
@@ -289,21 +343,13 @@ function MetricChart({
         }}
       >
         <ChartTitle>{title}</ChartTitle>
-        <span
-          style={{ fontSize: 18, fontWeight: 700, color }}
-        >
+        <span style={{ fontSize: 18, fontWeight: 700, color }}>
           {latestLabel}
         </span>
       </div>
 
       {/* SVG line chart */}
-      <SvgLineChart
-        values={values}
-        weeks={weeks}
-        color={color}
-        target={target}
-        unit={unit}
-      />
+      <SvgLineChart values={values} color={color} target={target} />
 
       <div
         style={{
@@ -315,7 +361,10 @@ function MetricChart({
         }}
       >
         <span>Wk {weeks[0]}</span>
-        <span>Target: {target}{unit}</span>
+        <span>
+          Target: {target}
+          {unit}
+        </span>
         <span>Wk {weeks[weeks.length - 1]}</span>
       </div>
     </Card>
@@ -324,16 +373,12 @@ function MetricChart({
 
 function SvgLineChart({
   values,
-  weeks,
   color,
   target,
-  unit,
 }: {
   values: number[];
-  weeks: number[];
   color: string;
   target: number;
-  unit: string;
 }) {
   const W = 260;
   const H = 80;
@@ -346,8 +391,7 @@ function SvgLineChart({
 
   const toX = (i: number) =>
     pad + (i / Math.max(values.length - 1, 1)) * (W - pad * 2);
-  const toY = (v: number) =>
-    H - pad - ((v - minV) / range) * (H - pad * 2);
+  const toY = (v: number) => H - pad - ((v - minV) / range) * (H - pad * 2);
 
   const pts = values.map((v, i) => `${toX(i)},${toY(v)}`).join(' ');
   const targetY = toY(target);
@@ -391,13 +435,7 @@ function SvgLineChart({
       />
       {/* Dots */}
       {values.map((v, i) => (
-        <circle
-          key={i}
-          cx={toX(i)}
-          cy={toY(v)}
-          r={3}
-          fill={color}
-        />
+        <circle key={i} cx={toX(i)} cy={toY(v)} r={3} fill={color} />
       ))}
     </svg>
   );

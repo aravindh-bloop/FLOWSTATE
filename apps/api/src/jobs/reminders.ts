@@ -1,5 +1,5 @@
 /**
- * Check-in reminder job (*/15 * * * *)
+ * Check-in reminder job (every 15 min — cron: "* /15 * * * *")
  *
  * Every 15 minutes: find active clients whose AM or PM check-in time
  * falls within the current ±7-minute window, then POST the reminder
@@ -16,7 +16,10 @@ function formatTime(t: string) {
   return t.slice(0, 5);
 }
 
-async function sendDiscordMessage(channelId: string, content: string): Promise<void> {
+async function sendDiscordMessage(
+  channelId: string,
+  content: string
+): Promise<void> {
   const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
     method: 'POST',
     headers: {
@@ -67,9 +70,13 @@ function buildPmMessage(client: {
   );
 }
 
-export async function runCheckinReminders(type: 'morning' | 'evening'): Promise<void> {
+export async function runCheckinReminders(
+  type: 'morning' | 'evening'
+): Promise<void> {
   if (!BOT_TOKEN) {
-    console.warn('[reminders] DISCORD_BOT_TOKEN not set — skipping reminder job');
+    console.warn(
+      '[reminders] DISCORD_BOT_TOKEN not set — skipping reminder job'
+    );
     return;
   }
 
@@ -101,10 +108,12 @@ export async function runCheckinReminders(type: 'morning' | 'evening'): Promise<
 
   if (clients.length === 0) return;
 
-  console.log(`[reminders] Sending ${type} reminders to ${clients.length} clients`);
+  console.log(
+    `[reminders] Sending ${type} reminders to ${clients.length} clients`
+  );
 
   await Promise.allSettled(
-    clients.map((client) => {
+    clients.map(client => {
       const message =
         type === 'morning' ? buildAmMessage(client) : buildPmMessage(client);
       return sendDiscordMessage(client.discord_channel_id, message);

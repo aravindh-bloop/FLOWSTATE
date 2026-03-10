@@ -36,7 +36,7 @@ export function RequireAuth({ children }: { children?: ReactNode }) {
   if (loading) return <AuthLoadingScreen />;
   if (!user) return <LoginPage />;
 
-  return children ? <>{children}</> : <Outlet />;
+  return children ? children : <Outlet />;
 }
 
 /**
@@ -52,7 +52,7 @@ export function RequireCoach({ children }: { children?: ReactNode }) {
     return <ClientWorkspaceRedirect />;
   }
 
-  return children ? <>{children}</> : <Outlet />;
+  return children ? children : <Outlet />;
 }
 
 /**
@@ -66,9 +66,7 @@ export function RootRedirect() {
   if (!user) return <LoginPage />;
 
   if (user.role === 'coach') {
-    return (
-      <Navigate to={`/workspace/${COACH_WORKSPACE_ID}`} replace />
-    );
+    return <Navigate to={`/workspace/${COACH_WORKSPACE_ID}`} replace />;
   }
 
   // Client: their workspaceId comes from the session user object.

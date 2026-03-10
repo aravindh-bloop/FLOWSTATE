@@ -5,9 +5,8 @@
  * Shows auto-generated Claude Sonnet summaries per client, per week.
  * Coach can add/edit their own notes on each summary.
  */
-import { useCallback, useState } from 'react';
-
 import { useFlowStateData } from '@affine/core/modules/flowstate';
+import { useCallback, useState } from 'react';
 
 import {
   Btn,
@@ -18,8 +17,8 @@ import {
   PageShell,
   Tag,
 } from '../shared/page-shell';
-import { useAsync } from '../shared/use-async';
 import type { Client, WeeklySummary } from '../shared/types';
+import { useAsync } from '../shared/use-async';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -27,8 +26,14 @@ export function Component() {
   const { fetchClients, fetchSummaries, addSummaryNotes } = useFlowStateData();
 
   // Load client list so user can select a client
-  const { data: clients, loading: loadingClients, error: errorClients } =
-    useAsync<Client[]>(() => fetchClients() as Promise<Client[]>, [fetchClients]);
+  const {
+    data: clients,
+    loading: loadingClients,
+    error: errorClients,
+  } = useAsync<Client[]>(
+    () => fetchClients() as Promise<Client[]>,
+    [fetchClients]
+  );
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
@@ -38,14 +43,18 @@ export function Component() {
 
   const selectedClient = clients?.find(c => c.id === selectedClientId) ?? null;
 
-  const { data: summaries, loading: loadingSummaries, error: errorSummaries, reload } =
-    useAsync<WeeklySummary[]>(
-      () =>
-        selectedClientId
-          ? (fetchSummaries(selectedClientId) as Promise<WeeklySummary[]>)
-          : Promise.resolve([]),
-      [fetchSummaries, selectedClientId]
-    );
+  const {
+    data: summaries,
+    loading: loadingSummaries,
+    error: errorSummaries,
+    reload,
+  } = useAsync<WeeklySummary[]>(
+    () =>
+      selectedClientId
+        ? (fetchSummaries(selectedClientId) as Promise<WeeklySummary[]>)
+        : Promise.resolve([]),
+    [fetchSummaries, selectedClientId]
+  );
 
   const currentSummary =
     summaries?.find(s => s.week_number === selectedWeek) ??
@@ -71,14 +80,24 @@ export function Component() {
   );
 
   return (
-    <PageShell title="Weekly Reports" subtitle="AI-generated summaries · Coach annotations">
+    <PageShell
+      title="Weekly Reports"
+      subtitle="AI-generated summaries · Coach annotations"
+    >
       {(errorClients || errorSummaries) && (
         <ErrorBanner message={errorClients ?? errorSummaries ?? ''} />
       )}
 
       {/* Client selector */}
       <Card style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
           <div>
             <label style={labelStyle}>Select Client</label>
             <select
@@ -105,7 +124,9 @@ export function Component() {
               <select
                 value={selectedWeek ?? ''}
                 onChange={e =>
-                  setSelectedWeek(e.target.value ? Number(e.target.value) : null)
+                  setSelectedWeek(
+                    e.target.value ? Number(e.target.value) : null
+                  )
                 }
                 style={selectStyle}
               >
@@ -139,7 +160,7 @@ export function Component() {
           onSaveNotes={() => void saveNotes(currentSummary.id)}
           onCancelNotes={() => setEditingNotes(null)}
           allSummaries={summaries ?? []}
-          selectedWeek={selectedWeek ?? (summaries?.at(-1)?.week_number ?? 1)}
+          selectedWeek={selectedWeek ?? summaries?.at(-1)?.week_number ?? 1}
           onSelectWeek={setSelectedWeek}
         />
       )}
@@ -151,7 +172,7 @@ export function Component() {
 
 function SummaryView({
   summary,
-  client,
+  _client,
   isEditing,
   notesText,
   busy,
@@ -180,7 +201,14 @@ function SummaryView({
     <div>
       {/* Week navigation pills */}
       {allSummaries.length > 1 && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 6,
+            marginBottom: 20,
+            flexWrap: 'wrap',
+          }}
+        >
           {allSummaries.map(s => (
             <button
               key={s.id}
@@ -196,7 +224,9 @@ function SummaryView({
                     ? 'var(--affine-primary-color)'
                     : 'var(--affine-background-secondary-color)',
                 color:
-                  selectedWeek === s.week_number ? '#fff' : 'var(--affine-text-secondary-color)',
+                  selectedWeek === s.week_number
+                    ? '#fff'
+                    : 'var(--affine-text-secondary-color)',
                 fontWeight: selectedWeek === s.week_number ? 600 : 400,
               }}
             >
@@ -207,12 +237,33 @@ function SummaryView({
       )}
 
       {/* Stats strip */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <KpiTile label="Check-Ins" value={`${summary.total_checkins - summary.missed_checkins}/${summary.total_checkins}`} />
-        <KpiTile label="Avg Adherence" value={summary.avg_adherence?.toFixed(1) ?? '—'} unit="%" />
-        <KpiTile label="Avg Energy" value={summary.avg_energy?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Focus" value={summary.avg_focus?.toFixed(1) ?? '—'} unit="/10" />
-        <KpiTile label="Avg Sleep" value={summary.avg_sleep_hours?.toFixed(1) ?? '—'} unit="h" />
+      <div
+        style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}
+      >
+        <KpiTile
+          label="Check-Ins"
+          value={`${summary.total_checkins - summary.missed_checkins}/${summary.total_checkins}`}
+        />
+        <KpiTile
+          label="Avg Adherence"
+          value={summary.avg_adherence?.toFixed(1) ?? '—'}
+          unit="%"
+        />
+        <KpiTile
+          label="Avg Energy"
+          value={summary.avg_energy?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Focus"
+          value={summary.avg_focus?.toFixed(1) ?? '—'}
+          unit="/10"
+        />
+        <KpiTile
+          label="Avg Sleep"
+          value={summary.avg_sleep_hours?.toFixed(1) ?? '—'}
+          unit="h"
+        />
         <KpiTile label="Interventions" value={summary.interventions_sent} />
       </div>
 
@@ -238,7 +289,9 @@ function SummaryView({
             AI Summary
           </span>
           <Tag color="neutral">Claude Sonnet</Tag>
-          <span style={{ fontSize: 11, color: 'var(--affine-text-disable-color)' }}>
+          <span
+            style={{ fontSize: 11, color: 'var(--affine-text-disable-color)' }}
+          >
             Generated{' '}
             {new Date(summary.generated_at).toLocaleDateString(undefined, {
               weekday: 'short',

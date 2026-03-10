@@ -92,13 +92,13 @@ export interface CalendarEvent {
   client_id: string;
   title: string;
   type:
-  | 'checkin_scheduled'
-  | 'checkin_completed'
-  | 'checkin_missed'
-  | 'phase_transition'
-  | 'milestone'
-  | 'intervention'
-  | 'coach_note';
+    | 'checkin_scheduled'
+    | 'checkin_completed'
+    | 'checkin_missed'
+    | 'phase_transition'
+    | 'milestone'
+    | 'intervention'
+    | 'coach_note';
   scheduled_at: string;
   completed_at?: string;
   status: 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
@@ -208,6 +208,28 @@ export interface CheckInStats {
     focus: number;
     sleep: number;
   }>;
+}
+
+export interface Registration {
+  id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  discord_user_id?: string;
+  preferred_start_date: string;
+  key_changes?: string;
+  short_term_goals?: string;
+  long_term_goals?: string;
+  goal_motivation?: string;
+  bottlenecks?: string;
+  checkin_time_am?: string;
+  current_wake_time?: string;
+  peak_mental_time?: string;
+  wearable_device?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
 }
 
 export interface Notification {

@@ -6,10 +6,9 @@
  * POST /api/clients/onboard, which triggers Discord channel
  * provisioning, calendar seeding, and welcome message.
  */
+import { useFlowStateData } from '@affine/core/modules/flowstate';
 import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-import { useFlowStateData } from '@affine/core/modules/flowstate';
 
 import { Btn, Card, ErrorBanner, PageShell } from '../shared/page-shell';
 
@@ -100,7 +99,9 @@ export function Component() {
   if (success) {
     return (
       <PageShell title="Onboarding Complete!">
-        <div style={{ maxWidth: 480, textAlign: 'center', margin: '80px auto' }}>
+        <div
+          style={{ maxWidth: 480, textAlign: 'center', margin: '80px auto' }}
+        >
           <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
           <h2
             style={{
@@ -155,12 +156,8 @@ export function Component() {
 
       <div style={{ maxWidth: 600 }}>
         <Card style={{ marginBottom: 20 }}>
-          {step === 0 && (
-            <StepIdentity form={form} set={set} />
-          )}
-          {step === 1 && (
-            <StepProgram form={form} set={set} />
-          )}
+          {step === 0 && <StepIdentity form={form} set={set} />}
+          {step === 1 && <StepProgram form={form} set={set} />}
           {step === 2 && (
             <StepProtocol
               form={form}
@@ -168,14 +165,9 @@ export function Component() {
               chronotype={chronotype(form.meq_score)}
             />
           )}
-          {step === 3 && (
-            <StepSchedule form={form} set={set} />
-          )}
+          {step === 3 && <StepSchedule form={form} set={set} />}
           {step === 4 && (
-            <StepConfirm
-              form={form}
-              chronotype={chronotype(form.meq_score)}
-            />
+            <StepConfirm form={form} chronotype={chronotype(form.meq_score)} />
           )}
         </Card>
 
@@ -187,9 +179,7 @@ export function Component() {
             </Btn>
           )}
           {step < STEPS.length - 1 ? (
-            <Btn onClick={() => setStep(s => s + 1)}>
-              Next →
-            </Btn>
+            <Btn onClick={() => setStep(s => s + 1)}>Next →</Btn>
           ) : (
             <Btn onClick={() => void submit()} disabled={busy}>
               {busy ? 'Onboarding…' : 'Onboard Client'}
@@ -238,7 +228,9 @@ function StepIdentity({
             placeholder="123456789012345678"
             style={fieldStyle}
           />
-          <Hint>18-digit Discord user ID. Used to create their private channel.</Hint>
+          <Hint>
+            18-digit Discord user ID. Used to create their private channel.
+          </Hint>
         </Field>
       </FieldGroup>
     </>
@@ -313,8 +305,9 @@ function StepProtocol({
           lineHeight: 1.6,
         }}
       >
-        Enter the client's Morningness-Eveningness Questionnaire score (16–86).
-        The chronotype and Week 1 protocol targets are derived automatically.
+        Enter the client&apos;s Morningness-Eveningness Questionnaire score
+        (16–86). The chronotype and Week 1 protocol targets are derived
+        automatically.
       </p>
       <FieldGroup>
         <Field label={`MEQ Score (16–86) → Chronotype: ${chronotype}`}>
@@ -336,8 +329,15 @@ function StepProtocol({
             fontSize: 12,
           }}
         >
-          <strong style={{ color: 'var(--affine-text-primary-color)' }}>Chronotype table:</strong>
-          <div style={{ marginTop: 6, color: 'var(--affine-text-secondary-color)' }}>
+          <strong style={{ color: 'var(--affine-text-primary-color)' }}>
+            Chronotype table:
+          </strong>
+          <div
+            style={{
+              marginTop: 6,
+              color: 'var(--affine-text-secondary-color)',
+            }}
+          >
             <div>• &gt;58 = Morning type</div>
             <div>• 42–58 = Intermediate type</div>
             <div>• &lt;42 = Evening type</div>
@@ -422,9 +422,9 @@ function StepConfirm({
           lineHeight: 1.6,
         }}
       >
-        Review everything before submitting. Clicking "Onboard Client" will
-        automatically provision Discord, Affine workspace, calendar events, and
-        send the welcome message.
+        Review everything before submitting. Clicking &quot;Onboard Client&quot;
+        will automatically provision Discord, Affine workspace, calendar events,
+        and send the welcome message.
       </p>
       <div>
         {rows.map(([label, value]) => (
@@ -491,10 +491,14 @@ function StepIndicator({
               i < current
                 ? 'var(--affine-background-success-color)'
                 : i === current
-                ? 'var(--affine-primary-color)'
-                : 'var(--affine-background-secondary-color)',
+                  ? 'var(--affine-primary-color)'
+                  : 'var(--affine-background-secondary-color)',
             color:
-              i <= current ? (i === current ? '#fff' : 'var(--affine-success-color)') : 'var(--affine-text-secondary-color)',
+              i <= current
+                ? i === current
+                  ? '#fff'
+                  : 'var(--affine-success-color)'
+                : 'var(--affine-text-secondary-color)',
             borderRight:
               i < steps.length - 1
                 ? '1px solid var(--affine-border-color)'
