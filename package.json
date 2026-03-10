@@ -17,10 +17,20 @@
     "dev:landing": "yarn workspace landing dev",
     "build:api": "yarn workspace @flowstate/api build",
     "build:bot": "yarn workspace @flowstate/bot build",
-    "build:landing": "yarn workspace landing build"
+    "build:landing": "yarn workspace landing build",
+    "lint-staged": "lint-staged",
+    "lint:ox": "oxlint --deny-warnings"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,js,jsx}": [
+      "oxlint --deny-warnings --fix"
+    ]
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "oxlint": "^1.52.0",
     "typescript": "^5.9.3"
   }
 }
