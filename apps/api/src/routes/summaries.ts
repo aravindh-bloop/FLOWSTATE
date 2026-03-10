@@ -16,7 +16,7 @@ export const summariesRouter = new Hono();
 summariesRouter.use('*', requireAuth);
 
 // GET /api/clients/:clientId/summaries
-summariesRouter.get('/client/:clientId', requireCoachOrSelf, async (c) => {
+summariesRouter.get('/:clientId/summaries', requireCoachOrSelf, async (c) => {
   const rows = await query(
     'SELECT * FROM weekly_summaries WHERE client_id = $1 ORDER BY week_number DESC',
     [c.req.param('clientId')]

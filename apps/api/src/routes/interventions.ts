@@ -37,7 +37,7 @@ interventionsRouter.get('/', requireCoach, async (c) => {
 });
 
 // GET /api/clients/:clientId/interventions
-interventionsRouter.get('/client/:clientId', requireCoachOrSelf, async (c) => {
+interventionsRouter.get('/:clientId/interventions', requireCoachOrSelf, async (c) => {
   const rows = await query(`
     SELECT i.*, it.name AS template_name
     FROM interventions i

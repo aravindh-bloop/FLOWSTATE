@@ -28,10 +28,11 @@ export const auth = betterAuth({
   // Bearer token plugin — enables Authorization: Bearer <token> flow
   plugins: [bearer()],
 
-  // Expose extra user fields (role) returned in session
+  // Expose extra user fields returned in session
   user: {
     additionalFields: {
       role: { type: 'string', required: true, defaultValue: 'client' },
+      must_change_password: { type: 'boolean', required: false, defaultValue: false },
     },
   },
 

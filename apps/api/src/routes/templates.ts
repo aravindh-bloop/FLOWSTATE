@@ -3,6 +3,7 @@
  *
  *   GET    /api/templates
  *   POST   /api/templates
+ *   GET    /api/templates/:id
  *   PATCH  /api/templates/:id
  *   DELETE /api/templates/:id    soft delete (active = false)
  */
@@ -46,6 +47,15 @@ templatesRouter.post('/', zValidator('json', templateSchema), async (c) => {
     JSON.stringify(data.variables ?? []),
   ]);
   return c.json(row, 201);
+});
+
+templatesRouter.get('/:id', async (c) => {
+  const row = await queryOne(
+    'SELECT * FROM intervention_templates WHERE id = $1',
+    [c.req.param('id')]
+  );
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json(row);
 });
 
 templatesRouter.patch('/:id', zValidator('json', templateSchema.partial()), async (c) => {

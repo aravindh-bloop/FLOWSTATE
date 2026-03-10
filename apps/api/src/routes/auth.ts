@@ -2,9 +2,10 @@
  * Auth routes — thin wrappers over BetterAuth to match the
  * frontend's expected API shape (session.ts calls these paths).
  *
- *   POST /api/auth/login  → { user, token }
- *   POST /api/auth/logout → 204
- *   GET  /api/auth/me     → { id, email, name, role, workspaceId }
+ *   POST /api/auth/login        → { user, token }
+ *   POST /api/auth/logout       → 204
+ *   GET  /api/auth/me           → { id, email, name, role, mustChangePassword, workspaceId }
+ *   POST /api/auth/set-password → 200 | 401
  */
 
 import { Hono } from 'hono';
@@ -12,7 +13,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { auth } from '../auth.js';
 import { requireAuth } from '../middleware/require-auth.js';
-import { queryOne } from '../db.js';
+import { queryOne, query } from '../db.js';
 
 export const authRouter = new Hono();
 
@@ -92,6 +93,41 @@ authRouter.get('/me', requireAuth, async (c) => {
     email: user.email,
     name: user.name,
     role: user.role,
+    mustChangePassword: (user as { must_change_password?: boolean }).must_change_password ?? false,
     workspaceId: clientRow?.affine_workspace_id ?? null,
   });
+});
+
+// POST /api/auth/set-password
+// Client sets a new password on first login — clears the must_change_password flag.
+// Requires both currentPassword (the temp one) and newPassword.
+const setPasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+authRouter.post('/set-password', requireAuth, zValidator('json', setPasswordSchema), async (c) => {
+  const user = c.get('user');
+  const { currentPassword, newPassword } = c.req.valid('json');
+
+  // Proxy to BetterAuth's built-in change-password endpoint
+  const changeReq = new Request(
+    new URL('/api/auth/change-password', c.req.url).toString(),
+    {
+      method: 'POST',
+      headers: c.req.raw.headers,
+      body: JSON.stringify({ currentPassword, newPassword, revokeOtherSessions: false }),
+    }
+  );
+
+  const res = await auth.handler(changeReq);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return c.json({ error: (body as { message?: string }).message ?? 'Password change failed' }, 401);
+  }
+
+  // Clear the must_change_password flag
+  await query('UPDATE users SET must_change_password = false WHERE id = $1', [user.id]);
+
+  return c.json({ ok: true });
 });

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn install)",
+      "Bash(for f in interventions.ts registrations.ts clients.ts checkins.ts calendar.ts templates.ts summaries.ts dashboard.ts notifications.ts bot.ts auth.ts)",
+      "Bash(do echo \"=== $f ===\" grep -n \"\\\\.get\\\\|\\\\.post\\\\|\\\\.patch\\\\|\\\\.delete\\\\|\\\\.put\" \"c:/Users/Admin/Documents/GitHub/flowcorner/apps/api/src/routes/$f\")",
+      "Bash(done)"
+    ]
+  }
+}

@@ -7,12 +7,13 @@
 -- BetterAuth-managed. One row per user.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email       text UNIQUE NOT NULL,
-  name        text NOT NULL,
-  role        text NOT NULL CHECK (role IN ('coach', 'client')),
-  created_at  timestamptz DEFAULT now(),
-  updated_at  timestamptz DEFAULT now()
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email                text UNIQUE NOT NULL,
+  name                 text NOT NULL,
+  role                 text NOT NULL CHECK (role IN ('coach', 'client')),
+  must_change_password boolean DEFAULT false,
+  created_at           timestamptz DEFAULT now(),
+  updated_at           timestamptz DEFAULT now()
 );
 
 -- ============================================================
