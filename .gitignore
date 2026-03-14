@@ -93,7 +93,7 @@ next-env.d.ts
 target
 *.node
 tsconfig.node.tsbuildinfo
-lib
+/lib
 affine.db
 apps/web/next-routes.conf
 .nx
