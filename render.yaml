@@ -1,0 +1,78 @@
+services:
+  - type: web
+    name: flowstate-api
+    env: node
+    rootDir: apps/api
+    buildCommand: yarn install && yarn build
+    startCommand: yarn start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTERAUTH_URL
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_ADMIN_ROLE_ID
+        sync: false
+      - key: DISCORD_COACH_ROLE_ID
+        sync: false
+      - key: DISCORD_CLIENT_ROLE_ID
+        sync: false
+      - key: DISCORD_UNVERIFIED_ROLE_ID
+        sync: false
+      - key: DISCORD_CLIENT_CATEGORY_ID
+        sync: false
+      - key: DISCORD_VERIFY_CHANNEL_ID
+        sync: false
+      - key: DISCORD_WELCOME_CHANNEL_ID
+        sync: false
+      - key: DISCORD_ANNOUNCEMENTS_CHANNEL_ID
+        sync: false
+      - key: DISCORD_GENERAL_CHAT_CHANNEL_ID
+        sync: false
+      - key: DISCORD_ADMIN_CHAT_CHANNEL_ID
+        sync: false
+      - key: DISCORD_ADMIN_LOGS_CHANNEL_ID
+        sync: false
+      - key: DISCORD_RESOURCES_CHANNEL_ID
+        sync: false
+      - key: DISCORD_COACH_CATEGORY_ID
+        sync: false
+      - key: DISCORD_DASHBOARD_CHANNEL_ID
+        sync: false
+      - key: DISCORD_ALERTS_CHANNEL_ID
+        sync: false
+      - key: DISCORD_WEEKLY_SUMMARIES_CHANNEL_ID
+        sync: false
+      - key: DISCORD_INVITE_URL
+        sync: false
+      - key: BOT_INTERNAL_API_TOKEN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: COACH_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CLOUDFLARE_R2_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_R2_ACCESS_KEY_ID
+        sync: false
+      - key: CLOUDFLARE_R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: CLOUDFLARE_R2_BUCKET_NAME
+        sync: false
+      - key: CLOUDFLARE_R2_PUBLIC_URL
+        sync: false
+      - key: PORT
+        value: 10000
+      - key: BACKEND_URL
+        sync: false
