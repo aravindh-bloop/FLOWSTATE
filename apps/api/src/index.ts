@@ -34,8 +34,11 @@ app.use(
   cors({
     origin: (origin) => {
       if (!origin) return null;
+      
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      
       // Dynamically allow Vercel previews and deployments
-      if (origin.endsWith('.vercel.app')) return origin;
+      if (normalizedOrigin.endsWith('.vercel.app')) return origin;
       
       const allowedOrigins = [
         process.env.BETTERAUTH_URL,
@@ -45,13 +48,13 @@ app.use(
         'http://localhost:3001',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
-      ];
+      ].filter(Boolean).map(o => o!.replace(/\/$/, ''));
 
       if (process.env.ALLOWED_ORIGINS) {
-        allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()));
+        allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim().replace(/\/$/, '')));
       }
 
-      return allowedOrigins.includes(origin) ? origin : null;
+      return allowedOrigins.includes(normalizedOrigin) ? origin : null;
     },
     allowHeaders: ['Content-Type', 'Authorization', 'X-Bot-Token'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
