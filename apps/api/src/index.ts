@@ -33,15 +33,25 @@ app.use(
   '*',
   cors({
     origin: (origin) => {
-      // Allow requests from frontend apps in development
+      if (!origin) return null;
+      // Dynamically allow Vercel previews and deployments
+      if (origin.endsWith('.vercel.app')) return origin;
+      
       const allowedOrigins = [
-        process.env.BETTERAUTH_URL ?? 'http://localhost:8080',
-        'http://localhost:3000',   // Landing page (user registration)
-        'http://localhost:3001',   // Coach portal (approvals)
+        process.env.BETTERAUTH_URL,
+        process.env.FRONTEND_URL,
+        process.env.COACH_PORTAL_URL,
+        'http://localhost:3000',
+        'http://localhost:3001',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
       ];
-      return allowedOrigins.includes(origin ?? '') ? origin : null;
+
+      if (process.env.ALLOWED_ORIGINS) {
+        allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()));
+      }
+
+      return allowedOrigins.includes(origin) ? origin : null;
     },
     allowHeaders: ['Content-Type', 'Authorization', 'X-Bot-Token'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
