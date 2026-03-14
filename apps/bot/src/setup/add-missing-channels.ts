@@ -13,8 +13,8 @@
  */
 
 // ── Hardcoded env vars (one-time script) ──
-const TOKEN = process.env.DISCORD_BOT_TOKEN;
-const GUILD_ID = process.env.DISCORD_GUILD_ID;
+const TOKEN = process.env.DISCORD_BOT_TOKEN || '';
+const GUILD_ID = process.env.DISCORD_GUILD_ID || '';
 const GENERAL_CATEGORY_ID = '1481497485020102806';
 
 const API = 'https://discord.com/api/v10';
