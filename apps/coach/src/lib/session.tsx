@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080').replace(/\/$/, '');
 
 export interface User {
   id: string;
