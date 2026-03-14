@@ -7,6 +7,7 @@
 
 import Groq from 'groq-sdk';
 
+// @ts-ignore
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 interface ClientContext {
