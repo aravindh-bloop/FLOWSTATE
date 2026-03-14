@@ -1,0 +1,45 @@
+﻿--- Users ---
+[
+  {
+    "id": "25ca5d89-566f-4f26-bc75-597eee4ebb7e",
+    "email": "coach@flowstate.com",
+    "name": "Coach",
+    "role": "coach"
+  },
+  {
+    "id": "8c0622d8-4f3e-46fb-a8a6-e64e54e8e6ab",
+    "email": "prajeinck@gmail.com",
+    "name": "Coach Yogesh",
+    "role": "coach"
+  },
+  {
+    "id": "123c1bab-c4d2-4ff2-bcc4-0cf10dcdac77",
+    "email": "final-test@example.com",
+    "name": "Final Discord Test",
+    "role": "client"
+  },
+  {
+    "id": "8ef4e24f-1a44-4e6f-a758-4d06a3f3a7f8",
+    "email": "discord-test@example.com",
+    "name": "Full Discord Test",
+    "role": "client"
+  }
+]
+--- Clients ---
+[
+  {
+    "discord_verification_code": "VEQAW6",
+    "full_name": "Final Discord Test",
+    "status": "pending"
+  },
+  {
+    "discord_verification_code": "FLOW02",
+    "full_name": "ronaldo",
+    "status": "pending"
+  },
+  {
+    "discord_verification_code": null,
+    "full_name": "Full Discord Test",
+    "status": "active"
+  }
+]

@@ -180,27 +180,17 @@ async function handleCheckin(
     | 'morning'
     | 'evening';
 
-  // Fetch client to get channel ID then send reminder via Discord REST (API does this too, but from bot it's direct)
   try {
+    // getClientStatus now hits /api/bot/client/:id which includes discord_channel_id
     const client = await getClientStatus(clientId);
-    // We need the channel ID — get it from client status
-    // We don't have channel ID here — we have client ID
-    // Use a direct API call to get full client record
-    const apiUrl = process.env.BACKEND_URL ?? 'http://localhost:8080';
-    const res = await fetch(`${apiUrl}/api/clients/${clientId}`, {
-      headers: { 'X-Bot-Token': process.env.BOT_INTERNAL_API_TOKEN ?? '' },
-    });
 
-    if (!res.ok) throw new Error('Failed to fetch client');
-    const fullClient = (await res.json()) as { discord_channel_id?: string };
-
-    if (!fullClient.discord_channel_id) {
+    if (!client.discord_channel_id) {
       await interaction.editReply('Client has no Discord channel configured.');
       return;
     }
 
     const channel = await interaction.client.channels.fetch(
-      fullClient.discord_channel_id
+      client.discord_channel_id
     );
     if (!channel?.isTextBased()) {
       await interaction.editReply('Client channel not accessible.');

@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "composite": true,
     "sourceMap": true
   },
   "include": ["src/**/*"],

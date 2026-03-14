@@ -57,6 +57,32 @@ CREATE TABLE IF NOT EXISTS program_phases (
 );
 
 -- ============================================================
+-- TABLE: registrations
+-- Landing page form submissions. Coach approves → provision pipeline.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS registrations (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name            text NOT NULL,
+  email                text NOT NULL,
+  phone                text,
+  discord_user_id      text,
+  preferred_start_date date,
+  key_changes          text,
+  short_term_goals     text,
+  long_term_goals      text,
+  goal_motivation      text,
+  bottlenecks          text,
+  checkin_time_am      text,
+  current_wake_time    text,
+  peak_mental_time     text,
+  wearable_device      text,
+  status               text DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reviewed_by          uuid REFERENCES users(id),
+  reviewed_at          timestamptz,
+  created_at           timestamptz DEFAULT now()
+);
+
+-- ============================================================
 -- TABLE: clients
 -- Extended profile for client users.
 -- Single source of truth for all automation.
@@ -67,7 +93,9 @@ CREATE TABLE IF NOT EXISTS clients (
   coach_id                    uuid REFERENCES users(id) NOT NULL,
   full_name                   text NOT NULL,
   discord_user_id             text UNIQUE,
+  discord_username            text,
   discord_channel_id          text UNIQUE,
+  discord_verification_code   text,
   affine_workspace_id         text UNIQUE,
   program_start_date          date NOT NULL,
   program_end_date            date GENERATED ALWAYS AS (program_start_date + INTERVAL '90 days') STORED,
@@ -89,6 +117,8 @@ CREATE TABLE IF NOT EXISTS clients (
   checkin_time_pm             time DEFAULT '20:00',
   rolling_7d_adherence        numeric(5,2) DEFAULT 0,
   consecutive_missed_checkins integer DEFAULT 0,
+  streak_count               integer DEFAULT 0,
+  streak_count                integer DEFAULT 0,
   last_checkin_at             timestamptz,
   intervention_flag           boolean DEFAULT false,
   created_at                  timestamptz DEFAULT now(),
@@ -278,3 +308,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_read          ON notifications(read
 
 CREATE INDEX IF NOT EXISTS idx_weekly_summaries_client_id  ON weekly_summaries(client_id);
 CREATE INDEX IF NOT EXISTS idx_milestones_client_id        ON milestones(client_id);
+
+CREATE INDEX IF NOT EXISTS idx_registrations_status        ON registrations(status);
+CREATE INDEX IF NOT EXISTS idx_registrations_email         ON registrations(email);

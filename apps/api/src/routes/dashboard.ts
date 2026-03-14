@@ -18,7 +18,7 @@ dashboardRouter.get('/coach', requireCoach, async (c) => {
   const clients = await query(`
     SELECT
       c.id, c.full_name, c.status, c.chronotype, c.program_week, c.program_day,
-      c.rolling_7d_adherence, c.consecutive_missed_checkins,
+      c.rolling_7d_adherence, c.consecutive_missed_checkins, c.streak_count,
       c.last_checkin_at, c.intervention_flag,
       c.target_wake_time, c.target_bedtime, c.target_caffeine_cutoff,
       c.target_peak_window,

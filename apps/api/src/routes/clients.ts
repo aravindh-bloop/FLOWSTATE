@@ -25,7 +25,7 @@ clientsRouter.get('/', requireCoach, async (c) => {
       c.id, c.full_name, c.discord_user_id, c.discord_channel_id,
       c.affine_workspace_id, c.program_start_date, c.program_end_date,
       c.program_week, c.program_day, c.status, c.chronotype,
-      c.primary_goal, c.rolling_7d_adherence, c.consecutive_missed_checkins,
+      c.primary_goal, c.rolling_7d_adherence, c.consecutive_missed_checkins, c.streak_count,
       c.last_checkin_at, c.intervention_flag,
       c.checkin_time_am, c.checkin_time_pm,
       c.target_wake_time, c.target_bedtime, c.target_caffeine_cutoff,

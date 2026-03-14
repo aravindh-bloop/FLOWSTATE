@@ -61,8 +61,8 @@ interventionsRouter.post('/manual', requireCoach, zValidator('json', manualSchem
 
   const [row] = await query(`
     INSERT INTO interventions
-      (client_id, coach_id, trigger_condition, trigger_data, draft_message, status)
-    VALUES ($1, $2, 'manual', $3, $4, 'pending')
+      (client_id, coach_id, trigger_condition, trigger_data, draft_message, final_message, status, approved_at)
+    VALUES ($1, $2, 'manual', $3, $4, $4, 'approved', now())
     RETURNING *
   `, [client_id, coach.id, JSON.stringify(trigger_data ?? {}), draft_message]);
 

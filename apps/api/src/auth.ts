@@ -19,8 +19,8 @@ import { bearer } from 'better-auth/plugins';
 import { pool } from './db.js';
 
 export const auth = betterAuth({
-  // Use existing NeonDB pool
-  database: { db: pool, type: 'pg' },
+  // Use existing NeonDB pool directly (BetterAuth auto-detects pg Pool)
+  database: pool,
 
   // Email + password sign-in
   emailAndPassword: { enabled: true },
@@ -28,23 +28,46 @@ export const auth = betterAuth({
   // Bearer token plugin — enables Authorization: Bearer <token> flow
   plugins: [bearer()],
 
-  // Expose extra user fields returned in session
+  // Base URL for auth callbacks and redirects
+  baseURL: process.env.BETTERAUTH_URL ?? 'http://localhost:8080',
+
+  // Map BetterAuth model names to our DB (users table has snake_case columns)
   user: {
+    modelName: 'users',
+    fields: {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
     additionalFields: {
       role: { type: 'string', required: true, defaultValue: 'client' },
       must_change_password: { type: 'boolean', required: false, defaultValue: false },
     },
   },
 
-  // Session config — 30 day token lifetime
   session: {
+    modelName: 'session',
     expiresIn: 60 * 60 * 24 * 30, // 30 days in seconds
     updateAge: 60 * 60 * 24,       // rotate session every 24h
   },
 
-  trustedOrigins: process.env.BETTERAUTH_URL
-    ? [process.env.BETTERAUTH_URL]
-    : ['http://localhost:3000'],
+  account: {
+    modelName: 'account',
+  },
+
+  // Use UUIDs for IDs (our users.id is uuid type)
+  advanced: {
+    database: {
+      generateId: () => crypto.randomUUID(),
+    },
+  },
+
+  trustedOrigins: [
+    process.env.BETTERAUTH_URL ?? 'http://localhost:8080',
+    'http://localhost:3000',   // Landing page
+    'http://localhost:3001',   // Coach portal
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+  ],
 });
 
 export type Session = Awaited<ReturnType<typeof auth.api.getSession>>;

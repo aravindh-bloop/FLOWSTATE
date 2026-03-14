@@ -1,0 +1,73 @@
+﻿[31m[1mUnknown Syntax Error[22m[39m: Command not found; did you mean one of:
+
+  0. yarn cache clean [--mirror] [--all]
+  1. yarn cache clean [--mirror] [--all]
+  2. yarn config get [--why] [--json] [--no-redacted] <name>
+  3. yarn config set [--json] [-H,--home] <name> <value>
+  4. yarn config unset [-H,--home] <name>
+  5. yarn set resolution <descriptor> <resolution>
+  6. yarn set version from sources [--path #0] [--repository #0] [--branch #0] [--plugin #0] [-n,--dry-run] [--no-minify] [-f,--force] [--skip-plugins]
+  7. yarn set version [--yarn-path] [--only-if-needed] <version>
+  8. yarn workspaces list [--since] [-R,--recursive] [--no-private] [-v,--verbose] [--json]
+  9. yarn --clipanion=definitions
+ 10. yarn help
+ 11. yarn help
+ 12. yarn help
+ 13. yarn <leadingArgument> ...
+ 14. yarn -v
+ 15. yarn -v
+ 16. yarn add [--json] [-F,--fixed] [-E,--exact] [-T,--tilde] [-C,--caret] [-D,--dev] [-P,--peer] [-O,--optional] [--prefer-dev] [-i,--interactive] [--cached] [--mode #0] ...
+ 17. yarn bin [-v,--verbose] [--json] [name]
+ 18. yarn config [--no-defaults] [--json] ...
+ 19. yarn dedupe [-s,--strategy #0] [-c,--check] [--json] [--mode #0] ...
+ 20. yarn exec <commandName> ...
+ 21. yarn explain peer-requirements [hash]
+ 22. yarn explain [--json] [code]
+ 23. yarn info [-A,--all] [-R,--recursive] [-X,--extra #0] [--cache] [--dependents] [--manifest] [--name-only] [--virtuals] [--json] ...
+ 24. yarn install [--json] [--immutable] [--immutable-cache] [--refresh-lockfile] [--check-cache] [--check-resolutions] [--inline-builds] [--mode #0]
+ 25. yarn link [-A,--all] [-p,--private] [-r,--relative] ...
+ 26. yarn unlink [-A,--all] ...
+ 27. yarn node ...
+ 28. yarn plugin check [--json]
+ 29. yarn plugin import from sources [--path #0] [--repository #0] [--branch #0] [--no-minify] [-f,--force] <name>
+ 30. yarn plugin import [--checksum] <name>
+ 31. yarn plugin remove <name>
+ 32. yarn plugin list [--json]
+ 33. yarn plugin runtime [--json]
+ 34. yarn rebuild ...
+ 35. yarn remove [-A,--all] [--mode #0] ...
+ 36. yarn run [--json]
+ 37. yarn run [--inspect] [--inspect-brk] [-T,--top-level] [-B,--binaries-only] [--require #0] <scriptName> ...
+ 38. yarn up [-i,--interactive] [-F,--fixed] [-E,--exact] [-T,--tilde] [-C,--caret] [-R,--recursive] [--mode #0] ...
+ 39. yarn why [-R,--recursive] [--json] [--peers] <package>
+ 40. yarn workspace <workspaceName> <commandName> ...
+ 41. yarn constraints query [--json] <query>
+ 42. yarn constraints source [-v,--verbose]
+ 43. yarn constraints [--fix] [--json]
+ 44. yarn create [-p,--package #0] [-q,--quiet] <command> ...
+ 45. yarn dlx [-p,--package #0] [-q,--quiet] <command> ...
+ 46. yarn init [-p,--private] [-w,--workspace] [-i,--install] [-n,--name #0]
+ 47. yarn init [-p,--private] [-w,--workspace] [-i,--install] [-n,--name #0] <initializer> ...
+ 48. yarn search
+ 49. yarn upgrade-interactive
+ 50. yarn npm audit [-A,--all] [-R,--recursive] [--environment #0] [--json] [--no-deprecations] [--severity #0] [--exclude #0] [--ignore #0]
+ 51. yarn npm info [-f,--fields #0] [--json] ...
+ 52. yarn npm login [-s,--scope #0] [--publish] [--always-auth] [--web-login]
+ 53. yarn npm logout [-s,--scope #0] [--publish] [-A,--all]
+ 54. yarn npm publish [--access #0] [--tag #0] [--tolerate-republish] [--otp #0] [--provenance] [-n,--dry-run] [--json]
+ 55. yarn npm tag add <package> <tag>
+ 56. yarn npm tag list [--json] [package]
+ 57. yarn npm tag remove <package> <tag>
+ 58. yarn npm whoami [-s,--scope #0] [--publish]
+ 59. yarn pack [--install-if-needed] [-n,--dry-run] [--json] [-o,--out #0]
+ 60. yarn patch-commit [-s,--save] <patchFolder>
+ 61. yarn patch [-u,--update] [--json] <package>
+ 62. yarn unplug [-A,--all] [-R,--recursive] [--json] ...
+ 63. yarn stage [-c,--commit] [-r,--reset] [-n,--dry-run]
+ 64. yarn version apply [--all] [--dry-run] [--prerelease] [--exact] [-R,--recursive] [--json]
+ 65. yarn version check [-i,--interactive]
+ 66. yarn version [-d,--deferred] [-i,--immediate] <strategy>
+ 67. yarn workspaces focus [--json] [--production] [-A,--all] ...
+ 68. yarn workspaces foreach [--from #0] [-A,--all] [-R,--recursive] [-W,--worktree] [-v,--verbose] [-p,--parallel] [-i,--interlaced] [-j,--jobs #0] [-t,--topological] [--topological-dev] [--include #0] [--exclude #0] [--no-private] [--since] [-n,--dry-run] <commandName> ...
+
+While running --ignore-engines workspace @flowstate/api dev

@@ -55,9 +55,24 @@ tsconfig.tsbuildinfo
 Thumbs.db
 
 # env
+*.env
 *.env.local
 *.local.env
 .history
+
+# diagnostic / temp
+test-db.ts
+check-iv.js
+api_log.txt
+launch-api.ts
+*.webp
+*.png
+tsc_output.txt
+api_log.txt
+debug_reg_out.txt
+batch_out.txt
+utf8_*.txt
+*.tsbuildinfo
 
 .next
 .vercel

@@ -90,7 +90,7 @@ Write a 200-300 word weekly summary narrative from the coach's perspective. Incl
 Tone: direct, warm, data-informed. Do not use bullet points — write in flowing paragraphs.`;
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-3-5-sonnet-latest',
     max_tokens: 500,
     messages: [{ role: 'user', content: prompt }],
   });

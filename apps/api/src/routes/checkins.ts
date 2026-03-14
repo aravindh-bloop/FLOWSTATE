@@ -53,7 +53,7 @@ checkInsRouter.get('/stats', requireCoachOrSelf, async (c) => {
       ROUND(AVG(adherence_score)::numeric, 2)   AS avg_adherence,
       ROUND(AVG(energy_rating)::numeric, 2)     AS avg_energy,
       ROUND(AVG(focus_rating)::numeric, 2)      AS avg_focus,
-      ROUND(AVG(sleep_hours)::numeric, 2)       AS avg_sleep_hours,
+      ROUND(AVG(sleep_hours)::numeric, 2)       AS avg_sleep,
       ROUND(AVG(wearable_hrv)::numeric, 2)      AS avg_hrv,
       COUNT(*) FILTER (WHERE type = 'morning')::int AS morning_count,
       COUNT(*) FILTER (WHERE type = 'evening')::int AS evening_count
@@ -73,5 +73,5 @@ checkInsRouter.get('/stats', requireCoachOrSelf, async (c) => {
     ORDER BY day ASC
   `, [clientId]);
 
-  return c.json({ summary: stats, trend7d });
+  return c.json({ ...stats, trend7d });
 });

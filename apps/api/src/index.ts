@@ -32,19 +32,31 @@ app.use(logger());
 app.use(
   '*',
   cors({
-    origin: process.env.BETTERAUTH_URL ?? 'http://localhost:3000',
+    origin: (origin) => {
+      // Allow requests from frontend apps in development
+      const allowedOrigins = [
+        process.env.BETTERAUTH_URL ?? 'http://localhost:8080',
+        'http://localhost:3000',   // Landing page (user registration)
+        'http://localhost:3001',   // Coach portal (approvals)
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
+      ];
+      return allowedOrigins.includes(origin ?? '') ? origin : null;
+    },
     allowHeaders: ['Content-Type', 'Authorization', 'X-Bot-Token'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   })
 );
 
-// ─── BetterAuth native routes (/api/auth/**) ─────────────────────────────────
-// Handles sign-up, sign-in/email, sign-out, get-session, etc.
-app.on(['GET', 'POST'], '/api/auth/**', (c) => auth.handler(c.req.raw));
-
 // ─── FlowState custom auth wrappers ──────────────────────────────────────────
+// These must be registered BEFORE the BetterAuth catch-all so specific
+// paths like /login, /logout, /me, /set-password are handled by our code.
 app.route('/api/auth', authRouter);
+
+// ─── BetterAuth native routes (/api/auth/*) ──────────────────────────────────
+// Handles sign-up, sign-in/email, sign-out, get-session, etc.
+app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
 // ─── Domain routes ────────────────────────────────────────────────────────────
 app.route('/api/clients', clientsRouter);
@@ -74,7 +86,22 @@ app.route('/api/registrations', registrationsRouter);
 app.route('/api/bot', botRouter);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
+app.get('/', (c) => c.json({ status: 'FlowState API Running' }));
 app.get('/health', (c) => c.json({ status: 'ok', ts: new Date().toISOString() }));
+
+// ─── 404 handler (catch-all for unmatched routes) ────────────────────────────
+app.notFound((c) => 
+  c.json({ error: 'Not Found', path: c.req.path }, 404)
+);
+
+// ─── Error handler ────────────────────────────────────────────────────────────
+app.onError((err, c) => {
+  console.error('[api-error]', err);
+  return c.json(
+    { error: 'Internal Server Error', message: err.message },
+    500
+  );
+});
 
 // ─── Start server ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT ?? 8080);

@@ -69,10 +69,12 @@ async function checkForMissedCheckIn(
 
   console.log(`[missed-detector] Missed ${type} check-in for client ${clientId}`);
 
-  // Increment missed counter
+  // Increment missed counter + reset streak
   await query(`
     UPDATE clients
-    SET consecutive_missed_checkins = consecutive_missed_checkins + 1, updated_at = now()
+    SET consecutive_missed_checkins = consecutive_missed_checkins + 1,
+        streak_count = 0,
+        updated_at = now()
     WHERE id = $1
   `, [clientId]);
 

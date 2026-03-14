@@ -11,7 +11,6 @@
     "./bs/*": "./src/bs/*.ts"
   },
   "devDependencies": {
-    "@affine-tools/utils": "workspace:*",
     "@blocksuite/affine": "workspace:*",
     "@node-rs/argon2": "^2.0.2",
     "@playwright/test": "=1.58.2",

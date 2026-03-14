@@ -81,7 +81,7 @@ export interface CheckInPayload {
 }
 
 export function submitCheckIn(payload: CheckInPayload) {
-  return botFetch<{ checkinId: string }>('/api/bot/checkin', {
+  return botFetch<{ checkinId: string; streak: number }>('/api/bot/checkin', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -122,22 +122,41 @@ export function getClientStatus(clientId: string) {
   return botFetch<{
     id: string;
     full_name: string;
+    discord_channel_id: string | null;
     rolling_7d_adherence: number;
     last_checkin_at: string | null;
     consecutive_missed_checkins: number;
     status: string;
-  }>(`/api/clients/${clientId}`);
+  }>(`/api/bot/client/${clientId}`);
 }
 
 export function pauseClient(clientId: string) {
-  return botFetch<void>(`/api/clients/${clientId}/status`, {
+  return botFetch<void>(`/api/bot/client/${clientId}/pause`, {
     method: 'PATCH',
-    body: JSON.stringify({ status: 'paused' }),
   });
 }
 
 export function getWeeklySummary(clientId: string) {
   return botFetch<Array<{ week_number: number; ai_narrative: string; avg_adherence: number }>>(
-    `/api/clients/${clientId}/summaries`
+    `/api/bot/client/${clientId}/summaries`
   );
+}
+
+// ─── Verification code ────────────────────────────────────────────────────────
+
+export function verifyClient(discordUserId: string, discordUsername: string, verificationCode: string) {
+  return botFetch<{
+    success: boolean;
+    client_id?: string;
+    full_name?: string;
+    error?: string;
+    discord_channel_id?: string;
+  }>('/api/bot/verify', {
+    method: 'POST',
+    body: JSON.stringify({
+      discord_user_id: discordUserId,
+      discord_username: discordUsername,
+      verification_code: verificationCode
+    }),
+  });
 }

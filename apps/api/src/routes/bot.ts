@@ -3,6 +3,9 @@
  * All protected by BOT_INTERNAL_API_TOKEN (X-Bot-Token header).
  *
  *   GET   /api/bot/client-by-channel/:channelId   resolve client from Discord channel
+ *   GET   /api/bot/client/:clientId                get client status (for slash commands)
+ *   GET   /api/bot/client/:clientId/summaries      get client weekly summaries
+ *   PATCH /api/bot/client/:clientId/pause          pause a client
  *   POST  /api/bot/checkin                         submit processed check-in
  *   POST  /api/bot/missed-checkin                  report missed check-in
  *   GET   /api/bot/pending-deliveries              approved interventions not yet sent
@@ -15,6 +18,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { query, queryOne } from '../db.js';
 import { requireBot } from '../middleware/require-bot.js';
+import { createDiscordChannels } from '../pipelines/provision.js';
 
 export const botRouter = new Hono();
 
@@ -39,6 +43,46 @@ botRouter.get('/client-by-channel/:channelId', async (c) => {
 
   if (!client) return c.json({ error: 'Client not found' }, 404);
   return c.json(client);
+});
+
+// ─── GET /api/bot/client/:clientId ──────────────────────────────────────────
+// Used by bot slash commands (/status, /checkin) to get client info
+botRouter.get('/client/:clientId', async (c) => {
+  const client = await queryOne(`
+    SELECT
+      c.id, c.full_name, c.discord_user_id, c.discord_channel_id,
+      c.program_week, c.program_day, c.status, c.chronotype,
+      c.rolling_7d_adherence, c.consecutive_missed_checkins,
+      c.last_checkin_at, c.intervention_flag,
+      c.target_wake_time, c.target_bedtime, c.target_caffeine_cutoff,
+      c.morning_light_duration_min, c.morning_exercise_time, c.target_peak_window
+    FROM clients c
+    WHERE c.id = $1
+  `, [c.req.param('clientId')]);
+
+  if (!client) return c.json({ error: 'Client not found' }, 404);
+  return c.json(client);
+});
+
+// ─── GET /api/bot/client/:clientId/summaries ────────────────────────────────
+// Used by bot /summary slash command
+botRouter.get('/client/:clientId/summaries', async (c) => {
+  const rows = await query(
+    'SELECT * FROM weekly_summaries WHERE client_id = $1 ORDER BY week_number DESC',
+    [c.req.param('clientId')]
+  );
+  return c.json(rows);
+});
+
+// ─── PATCH /api/bot/client/:clientId/pause ──────────────────────────────────
+// Used by bot /pause slash command
+botRouter.patch('/client/:clientId/pause', async (c) => {
+  const updated = await queryOne(
+    "UPDATE clients SET status = 'paused', updated_at = now() WHERE id = $1 RETURNING id, status",
+    [c.req.param('clientId')]
+  );
+  if (!updated) return c.json({ error: 'Client not found' }, 404);
+  return c.json(updated);
 });
 
 // ─── POST /api/bot/checkin ────────────────────────────────────────────────────
@@ -92,34 +136,47 @@ botRouter.post('/checkin', zValidator('json', checkinSchema), async (c) => {
     data.wearable_sleep_score ?? null, data.program_week, data.program_day,
   ]);
 
-  // Mark matching calendar event as completed
+  // Mark matching calendar event as completed (use subquery since PostgreSQL doesn't support LIMIT in UPDATE)
   await query(`
     UPDATE calendar_events
     SET status = 'completed', completed_at = now(), linked_checkin_id = $1
-    WHERE client_id = $2
-      AND type = 'checkin_scheduled'
-      AND status = 'scheduled'
-      AND DATE(scheduled_at) = CURRENT_DATE
-      AND (
-        ($3 = 'morning' AND EXTRACT(HOUR FROM scheduled_at) < 12)
-        OR ($3 = 'evening' AND EXTRACT(HOUR FROM scheduled_at) >= 12)
-        OR $3 = 'wearable'
-      )
-    LIMIT 1
+    WHERE id = (
+      SELECT id FROM calendar_events
+      WHERE client_id = $2
+        AND type = 'checkin_scheduled'
+        AND status = 'scheduled'
+        AND DATE(scheduled_at) = CURRENT_DATE
+        AND (
+          ($3 = 'morning' AND EXTRACT(HOUR FROM scheduled_at) < 12)
+          OR ($3 = 'evening' AND EXTRACT(HOUR FROM scheduled_at) >= 12)
+          OR $3 = 'wearable'
+        )
+      LIMIT 1
+    )
   `, [checkin.id, data.client_id, data.type]);
 
-  // Update last_checkin_at + reset missed counter
-  await query(`
+  // Update last_checkin_at + reset missed counter + update streak
+  // Streak: if last check-in was yesterday or today, increment; otherwise reset to 1
+  const updatedClient = await queryOne<{ streak_count: number }>(`
     UPDATE clients
-    SET last_checkin_at = now(), consecutive_missed_checkins = 0, updated_at = now()
+    SET last_checkin_at = now(),
+        consecutive_missed_checkins = 0,
+        streak_count = CASE
+          WHEN last_checkin_at IS NULL THEN 1
+          WHEN DATE(last_checkin_at) = CURRENT_DATE THEN GREATEST(streak_count, 1)
+          WHEN DATE(last_checkin_at) = CURRENT_DATE - 1 THEN streak_count + 1
+          ELSE 1
+        END,
+        updated_at = now()
     WHERE id = $1
+    RETURNING streak_count
   `, [data.client_id]);
 
   // Run alert pipeline asynchronously (don't await — don't block bot response)
   const { runAlertPipeline } = await import('../pipelines/alert.js');
   runAlertPipeline(data.client_id).catch(console.error);
 
-  return c.json({ checkinId: checkin.id }, 201);
+  return c.json({ checkinId: checkin.id, streak: updatedClient?.streak_count ?? 0 }, 201);
 });
 
 // ─── POST /api/bot/missed-checkin ─────────────────────────────────────────────
@@ -224,4 +281,60 @@ botRouter.get('/pending-reminders', async (c) => {
   `);
 
   return c.json({ type, clients: rows });
+});
+
+// ─── POST /api/bot/verify ───────────────────────────────────────────────────
+const verifySchema = z.object({
+  discord_user_id: z.string(),
+  discord_username: z.string(),
+  verification_code: z.string(),
+});
+
+botRouter.post('/verify', zValidator('json', verifySchema), async (c) => {
+  const { discord_user_id, verification_code } = c.req.valid('json');
+
+  // Find client with this code and pending status
+  const client = await queryOne<{ id: string; full_name: string }>(
+    "SELECT id, full_name FROM clients WHERE discord_verification_code = $1 AND status = 'pending'",
+    [verification_code]
+  );
+
+  if (!client) {
+    return c.json({ success: false, error: 'Invalid or expired verification code.' }, 404);
+  }
+
+  // Update client status and Discord details
+  // Note: clients table does not have a discord_username column
+  await query(
+    `UPDATE clients
+     SET discord_user_id = $1,
+         status = 'active',
+         discord_verification_code = NULL,
+         updated_at = now()
+     WHERE id = $2`,
+    [discord_user_id, client.id]
+  );
+
+  // Trigger Discord channel creation
+  const firstName = client.full_name.split(' ')[0] ?? client.full_name;
+  try {
+    const discordChannelId = await createDiscordChannels(client.id, firstName, discord_user_id);
+    if (discordChannelId) {
+      await query('UPDATE clients SET discord_channel_id = $1 WHERE id = $2', [
+        discordChannelId,
+        client.id,
+      ]);
+      return c.json({
+        success: true,
+        client_id: client.id,
+        full_name: client.full_name,
+        discord_channel_id: discordChannelId
+      });
+    } else {
+      return c.json({ success: true, client_id: client.id, full_name: client.full_name, warning: 'Discord channels could not be created automatically.' });
+    }
+  } catch (err) {
+    console.error('[bot-verify] Discord provisioning failed:', err);
+    return c.json({ success: true, client_id: client.id, full_name: client.full_name, error: 'User verified, but Discord channel creation failed. Please contact coach.' });
+  }
 });

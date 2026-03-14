@@ -15,9 +15,11 @@
     "dev:api": "yarn workspace @flowstate/api dev",
     "dev:bot": "yarn workspace @flowstate/bot dev",
     "dev:landing": "yarn workspace landing dev",
+    "dev:coach": "yarn workspace coach-portal dev",
     "build:api": "yarn workspace @flowstate/api build",
     "build:bot": "yarn workspace @flowstate/bot build",
     "build:landing": "yarn workspace landing build",
+    "build:coach": "yarn workspace coach-portal build",
     "lint-staged": "lint-staged",
     "lint:ox": "oxlint --deny-warnings"
   },

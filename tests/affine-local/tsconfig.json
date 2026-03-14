@@ -7,8 +7,6 @@
   },
   "include": ["./e2e"],
   "references": [
-    { "path": "../kit" },
-    { "path": "../../tools/cli" },
-    { "path": "../../tools/utils" }
+    { "path": "../kit" }
   ]
 }
